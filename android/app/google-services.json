@@ -1,0 +1,90 @@
+{
+  "project_info": {
+    "project_number": "92598060179",
+    "project_id": "applamdep-ffa8e",
+    "storage_bucket": "applamdep-ffa8e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:92598060179:android:f399fc7a0fd9fde79c7966",
+        "android_client_info": {
+          "package_name": "com.example.applamdep"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "92598060179-prr41b8r1mnfgbkcqo75p9mi44eq185f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.applamdep",
+            "certificate_hash": "49fa8b5e39ec520f78b056430f0e527f67936591"
+          }
+        },
+        {
+          "client_id": "92598060179-gqshb4pme2fodk5036qp92jqhuav0p13.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCStDSAI_yc0qS_8VmGPMcm4RGAtfeq3tI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "92598060179-gqshb4pme2fodk5036qp92jqhuav0p13.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "92598060179-6qmuvts6qb2lfhc0756bk6tcohv44tsg.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.journal"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:92598060179:android:a0fc6d6660fe1a8c9c7966",
+        "android_client_info": {
+          "package_name": "com.example.journal"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "92598060179-gqshb4pme2fodk5036qp92jqhuav0p13.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCStDSAI_yc0qS_8VmGPMcm4RGAtfeq3tI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "92598060179-gqshb4pme2fodk5036qp92jqhuav0p13.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "92598060179-6qmuvts6qb2lfhc0756bk6tcohv44tsg.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.journal"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

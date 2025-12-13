@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">applamdep</string>
+    <string name="facebook_app_id">1211727384165013</string>
+    <string name="facebook_client_token">8490137d7cd2f7f7c636bb880d5f6c6b</string>
+    <string name="fb_login_protocol_scheme">fb1211727384165013</string>
+</resources>
