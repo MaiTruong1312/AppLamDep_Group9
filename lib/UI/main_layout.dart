@@ -1,3 +1,5 @@
+import 'package:applamdep/UI/booking/booking_screen.dart';
+import 'package:applamdep/UI/discover/discover_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:applamdep/UI/Main/Home.dart';
 import 'package:applamdep/UI/profile/profile_screen.dart';
@@ -18,8 +20,8 @@ class _MainLayoutState extends State<MainLayout> {
   final List<Widget> _pages = const [
     HomeScreen(),      // Tab 0
     CollectionScreen(),     // Collection
-    Placeholder(),     // Booking
-    Placeholder(),     // Discover
+    BookingScreen(),     // Booking
+    DiscoverScreen(),     // Discover
     ProfileScreen(),   // Tab 4
   ];
 
