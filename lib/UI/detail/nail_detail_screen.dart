@@ -1,9 +1,10 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class NailDetailScreen extends StatefulWidget {
-  // Bạn có thể truyền ID sản phẩm vào đây sau này
-  const NailDetailScreen({Key? key}) : super(key: key);
+  final String nailId;
+  const NailDetailScreen({Key? key, required this.nailId}) : super(key: key);
 
   @override
   State<NailDetailScreen> createState() => _NailDetailScreenState();
@@ -41,119 +42,130 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          "Nail A.01",
-          style: TextStyle(
-              color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-      ),
-      body: Stack(
-        children: [
-          // --- NỘI DUNG CUỘN ---
-          SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 100), // Chừa chỗ cho nút Book
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildImageHeader(),
-                const SizedBox(height: 20),
-                _buildSectionTitle("About A.01"),
-                _buildDescription(),
-                const Divider(height: 40, thickness: 1, color: Color(0xFFEEEEEE)),
-                _buildVoucherSection(),
-                const SizedBox(height: 20),
-                _buildColorSection(),
-                const Divider(height: 40, thickness: 1, color: Color(0xFFEEEEEE)),
-                _buildReviewSummary(),
-                _buildUserReviews(),
-              ],
-            ),
-          ),
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('nails').doc(widget.nailId).snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
 
-          // --- NÚT BOOK DƯỚI CÙNG ---
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  )
-                ],
+        var nailData = snapshot.data!.data() as Map<String, dynamic>;
+
+        return Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              nailData['name'] ?? "Detail",
+              style: const TextStyle(
+                  color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            centerTitle: true,
+          ),
+          body: Stack(
+            children: [
+              // --- NỘI DUNG CUỘN ---
+              SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 100), // Chừa chỗ cho nút Book
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildImageHeader(nailData['img_url']),
+                    const SizedBox(height: 20),
+                    _buildSectionTitle("About ${nailData['name']}"),
+                    _buildDescription(),
+                    const Divider(height: 40, thickness: 1, color: Color(0xFFEEEEEE)),
+                    _buildVoucherSection(),
+                    const SizedBox(height: 20),
+                    _buildColorSection(),
+                    const Divider(height: 40, thickness: 1, color: Color(0xFFEEEEEE)),
+                    _buildReviewSummary(),
+                    _buildUserReviews(),
+                  ],
+                ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    "Availability Saturday at 16:00 PM",
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
+
+              // --- NÚT BOOK DƯỚI CÙNG ---
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -5),
+                      )
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF25278),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "Availability Saturday at 16:00 PM",
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: () {},
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF25278),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                          ),
+                          child: const Text(
+                            "Book",
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white),
+                          ),
                         ),
                       ),
-                      child: const Text(
-                        "Book",
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white),
-                      ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
 
-          // Nút Floating AI nhỏ (giống thiết kế)
-          Positioned(
-            bottom: 80,
-            right: 16,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF25278),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(color: Colors.pink.withOpacity(0.3), blurRadius: 8)
-                ],
-              ),
-              child: const Icon(Icons.auto_awesome, color: Colors.white),
-            ),
-          )
-        ],
-      ),
+              // Nút Floating AI nhỏ (giống thiết kế)
+              Positioned(
+                bottom: 80,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF25278),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: Colors.pink.withOpacity(0.3), blurRadius: 8)
+                    ],
+                  ),
+                  child: const Icon(Icons.auto_awesome, color: Colors.white),
+                ),
+              )
+            ],
+          ),
+        );
+      },
     );
   }
 
   // ---------------- WIDGET CON ----------------
 
-  Widget _buildImageHeader() {
+  Widget _buildImageHeader(String imageUrl) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Stack(
@@ -161,7 +173,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: Image.asset(
-              "assets/images/nail1.png", // Thay ảnh thật của bạn vào đây
+              imageUrl, // Thay ảnh thật của bạn vào đây
               width: double.infinity,
               height: 220,
               fit: BoxFit.cover,
@@ -502,7 +514,6 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
       ),
     );
   }
-
   Widget _buildActionButton(IconData icon, String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

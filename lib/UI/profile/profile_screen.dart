@@ -1,3 +1,4 @@
+import 'package:applamdep/UI/profile/wishlist_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:applamdep/UI/Login/mainlogin.dart';
 import 'package:applamdep/UI/profile/edit_profile_screen.dart';
@@ -309,7 +310,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       {'icon': Icons.cached, 'label': 'My Booking', 'color': Colors.green},
       {
         'icon': Icons.bookmark_border,
-        'label': 'Saved collection',
+        'label': 'Wish List',
         'color': Colors.orange,
       },
       {'icon': Icons.receipt_long, 'label': 'Receipts', 'color': Colors.blue},
@@ -332,26 +333,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(item['icon'] as IconData, color: item['color'] as Color),
-              const SizedBox(height: 8),
-              Text(
-                item['label'] as String,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
+        return InkWell( // Wrap with InkWell for tap effect
+          onTap: () {
+            if (item['label'] == 'Wish List') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const WishlistScreen()),
+              );
+            }
+            // You can add navigation for other items here as well
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(item['icon'] as IconData, color: item['color'] as Color),
+                const SizedBox(height: 8),
+                Text(
+                  item['label'] as String,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

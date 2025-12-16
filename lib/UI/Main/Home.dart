@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+// Đảm bảo các import này đúng với cấu trúc dự án của bạn
 import '../detail/nail_detail_screen.dart';
+import '../../widgets/nail_card.dart';
+import '../../widgets/store_card.dart';
 
 // ------------------ HOME SCREEN ------------------
 class HomeScreen extends StatefulWidget {
@@ -12,12 +15,18 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  // --- GIỮ NGUYÊN LOGIC & STATE ---
   String? _userName;
   late PageController _pageController;
   int _currentPage = 0;
   late AnimationController _fadeAnimationController;
   late Animation<double> _fadeAnimation;
   late AnimationController _listAnimationController;
+
+  // Màu chủ đạo (Accent Color) - Dùng đồng bộ
+  final Color _accentColor = const Color(0xFFF25278);
+  final Color _primaryText = const Color(0xFF313235);
+  final Color _bgGrey = const Color(0xFFFAFAFA); // Nền sáng hơn một chút
 
   @override
   void initState() {
@@ -30,11 +39,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     _fadeAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 800), // Tăng thời gian fade nhẹ
     );
     _fadeAnimation = CurvedAnimation(
       parent: _fadeAnimationController,
-      curve: Curves.easeIn,
+      curve: Curves.easeOutQuart, // Curve mượt hơn
     );
 
     _listAnimationController = AnimationController(
@@ -57,155 +66,181 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Container(
-            width: double.infinity,
-            height: double.infinity,
-            clipBehavior: Clip.antiAlias,
-            decoration: const BoxDecoration(color: Color(0xFFF5F5F5)),
-            child: Stack(
-                children: [
-                // ---------------- MAIN SCROLL AREA ----------------
-                Positioned.fill(
-                top: 52,
-                bottom: 0,
-                child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                            _buildTopSection(),
-                      const SizedBox(height: 20),
-                              // ---------------- SPECIAL OFFERS ----------------
-                              _buildSpecialOffers(),
-                              const SizedBox(height: 20),
+      backgroundColor: _bgGrey, // Sử dụng màu nền mới
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        clipBehavior: Clip.antiAlias,
+        // Thêm gradient nhẹ cho nền để tạo chiều sâu cao cấp
+        decoration: BoxDecoration(
+            gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white,
+                  _bgGrey,
+                  _bgGrey,
+                ]
+            )
+        ),
+        child: Stack(
+          children: [
+            // ---------------- MAIN SCROLL AREA ----------------
+            Positioned.fill(
+              top: 52,
+              bottom: 0,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 24), // Tăng padding dọc
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildTopSection(),
+                        const SizedBox(height: 24),
+                        // ---------------- SPECIAL OFFERS ----------------
+                        _buildSpecialOffers(),
+                        const SizedBox(height: 24),
 
-                              // ---------------- SERVICES GRID ----------------
-                              _buildServicesList(),
-                              const SizedBox(height: 20),
+                        // ---------------- SERVICES GRID ----------------
+                        _buildServicesList(),
+                        const SizedBox(height: 24),
 
-                              // ---------------- MOST MONTHLY ----------------
-                              _buildMostMonthly(),
-                              const SizedBox(height: 20),
+                        // ---------------- MOST MONTHLY ----------------
+                        _buildMostMonthly(),
+                        const SizedBox(height: 24),
 
-                              // ---------------- SALONS NEAR YOU ----------------
-                              _buildSalonsNearYou(),
+                        // ---------------- SALONS NEAR YOU ----------------
+                        _buildSalonsNearYou(),
 
-                              const SizedBox(height: 40),
-                            ],
-                        ),
-                      ),
-                    ),
-                ),
-                ),
-
-                  // ---------------- FAKE STATUS BAR ----------------
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      height: 52,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF5F5F5),
-                      ),
+                        const SizedBox(height: 40),
+                      ],
                     ),
                   ),
-                ],
+                ),
+              ),
             ),
+
+            // ---------------- FAKE STATUS BAR (Translucent) ----------------
+            Positioned(
+              left: 0,
+              top: 0,
+              right: 0,
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withOpacity(0.9),
+                          Colors.white.withOpacity(0.0),
+                        ]
+                    )
+                ),
+              ),
+            ),
+          ],
         ),
+      ),
     );
   }
 
   // ============================================================
-  // ===================== TOP SECTION =========================
+  // ===================== TOP SECTION (Cải tiến) =================
   // ============================================================
 
   Widget _buildTopSection() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20), // Tăng padding ngang
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Greeting + Notification
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Hello, Welcome 👋',
                     style: TextStyle(
-                      color: Color(0xFF7B7D87),
+                      color: Colors.grey.shade600,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     _userName ?? 'Guest',
-                    style: const TextStyle(
-                      color: Color(0xFF313235),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
+                    style: TextStyle(
+                      color: _primaryText,
+                      fontSize: 22, // Font lớn hơn chút
+                      fontWeight: FontWeight.w800, // Đậm hơn
                     ),
                   ),
                 ],
               ),
 
-              // Notification icon with better shadow
+              // Notification icon - Soft Shadow
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.10),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
+                      color: Colors.black.withOpacity(0.08), // Shadow nhẹ hơn
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     )
                   ],
                 ),
-                child: const Icon(Icons.notifications_outlined, size: 24),
+                child: Icon(Icons.notifications_none_rounded, size: 26, color: _primaryText),
               ),
             ],
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
-          // ---------------- SEARCH BAR ----------------
+          // ---------------- SEARCH BAR (Cải tiến) ----------------
           Container(
             width: double.infinity,
-            height: 58,
+            height: 56,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
-              color: const Color(0xFFEEF0F1),
-              borderRadius: BorderRadius.circular(14),
+              color: Colors.white, // Nền trắng tinh
+              borderRadius: BorderRadius.circular(18), // Bo tròn nhiều hơn
+              border: Border.all(color: Colors.grey.shade100), // Viền rất nhẹ
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
+                  // Shadow màu hồng nhẹ tạo cảm giác "glow"
+                  color: _accentColor.withOpacity(0.08),
+                  blurRadius: 15,
+                  offset: const Offset(0, 6),
+                  spreadRadius: 0,
                 ),
               ],
             ),
             child: Row(
-              children: const [
-                Icon(Icons.search, color: Color(0xFFB8BCC1), size: 24),
-                SizedBox(width: 12),
-                Text(
-                  'Search services, salons...',
-                  style: TextStyle(
-                    color: Color(0xFFB8BCC1),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w400,
+              children: [
+                Icon(Icons.search_rounded, color: _accentColor, size: 26), // Icon màu accent
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    'Search services, salons...',
+                    style: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ),
               ],
@@ -217,24 +252,63 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // ============================================================
-  // ===================== SPECIAL OFFERS =======================
+  // ===================== SPECIAL OFFERS (Giữ nguyên logic) =====
   // ============================================================
+
+  // Helper widget cho tiêu đề section
+  Widget _buildSectionHeader(String title, VoidCallback onSeeAllTap) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: _primaryText,
+              fontSize: 20,
+              fontWeight: FontWeight.w800, // Đậm hơn
+            ),
+          ),
+          InkWell(
+            onTap: onSeeAllTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Text(
+                'See all',
+                style: TextStyle(
+                  color: _accentColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildSpecialOffers() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('banners').snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return const Center(child: Text('Something went wrong'));
-        }
-
+        if (snapshot.hasError) return const SizedBox.shrink();
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          // Placeholder đẹp hơn khi loading
+          return Container(
+            height: 166,
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(20)
+            ),
+          );
         }
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const SizedBox.shrink(); // Or a placeholder
-        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
 
         final offers = snapshot.data!.docs;
 
@@ -243,22 +317,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
                     'Special Offers',
                     style: TextStyle(
-                      color: Color(0xFF313235),
+                      color: _primaryText,
                       fontSize: 20,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
                 // Horizontal Banner
                 SizedBox(
-                  height: 166,
+                  height: 170, // Tăng nhẹ chiều cao
                   child: PageView.builder(
                     controller: _pageController,
                     physics: const BouncingScrollPhysics(),
@@ -281,11 +355,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             value = (_pageController.page ?? 0) - index;
                             value = (1 - (value.abs() * 0.3)).clamp(0.0, 1.0);
                           }
+                          // Thêm opacity effect khi scale
+                          final opacity = Curves.easeOut.transform((1 - (value.abs() * 0.5)).clamp(0.0, 1.0));
                           return Center(
-                            child: SizedBox(
-                              height: Curves.easeOut.transform(value) * 166,
-                              width: Curves.easeOut.transform(value) * 284,
-                              child: child,
+                            child: Opacity(
+                              opacity: opacity,
+                              child: SizedBox(
+                                height: Curves.easeOut.transform(value) * 170,
+                                width: Curves.easeOut.transform(value) * 300, // Rộng hơn chút
+                                child: child,
+                              ),
                             ),
                           );
                         },
@@ -316,43 +395,67 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // ---------------- Banner Card -------------------
+  // ---------------- Banner Card (Cải tiến shadow) -------------------
   Widget _buildOfferBanner({required String image, required String percent}) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), // Thêm margin dọc để tránh cắt shadow
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24), // Bo góc lớn hơn
         image: DecorationImage(image: AssetImage(image), fit: BoxFit.cover),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.10),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+              color: const Color(0xFFF25278).withOpacity(0.25), // Shadow màu hồng
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+              spreadRadius: -2
           )
         ],
       ),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
             colors: [
-              Colors.pinkAccent.withOpacity(0.90),
-              Colors.pinkAccent.withOpacity(0.5),
-              Colors.pinkAccent.withOpacity(0.0),
+              Colors.black.withOpacity(0.6), // Gradient tối hơn chút để nổi bật chữ
+              Colors.transparent,
             ],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
+            begin: Alignment.bottomLeft,
+            end: Alignment.topRight,
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.only(left: 20, top: 40),
-          child: Text(
-            percent,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 52,
-              fontWeight: FontWeight.bold,
-            ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: _accentColor,
+                      borderRadius: BorderRadius.circular(8)
+                  ),
+                  child: const Text("Limited Time", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),)
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$percent OFF',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 36, // Điều chỉnh lại size cho cân đối
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5
+                ),
+              ),
+              const Text(
+                'On your first booking',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -362,59 +465,41 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Indicator dot
   Widget _indicator({bool active = false}) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
+      duration: const Duration(milliseconds: 200),
       margin: const EdgeInsets.symmetric(horizontal: 4),
-      width: active ? 30 : 10,
+      width: active ? 24 : 8, // Ngắn hơn chút
       height: 8,
       decoration: BoxDecoration(
-        color: active ? const Color(0xFFF25278) : const Color(0xFFE0E2E5),
+        color: active ? _accentColor : Colors.grey.shade300, // Màu inactive nhạt hơn
         borderRadius: BorderRadius.circular(4),
       ),
     );
   }
 
   // ============================================================
-  // ======================= SERVICES ============================
+  // ======================= SERVICES (Cải tiến) ==================
   // ============================================================
 
   Widget _buildServicesList() {
     final services = [
-      {'label': 'Nails', 'icon': Icons.spa},
-      {'label': 'Eye', 'icon': Icons.visibility},
-      {'label': 'Facial', 'icon': Icons.face},
-      {'label': 'Hair Cut', 'icon': Icons.content_cut},
+      {'label': 'Nails', 'icon': Icons.spa_rounded},
+      {'label': 'Eye', 'icon': Icons.visibility_rounded},
+      {'label': 'Facial', 'icon': Icons.face_retouching_natural_rounded},
+      {'label': 'Hair Cut', 'icon': Icons.content_cut_rounded},
     ];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
-                'Services',
-                style: TextStyle(
-                  color: Color(0xFF313235),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                'See all',
-                style: TextStyle(
-                  color: Color(0xFFDE2057),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+          _buildSectionHeader('Services', () {}),
           const SizedBox(height: 16),
 
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start, // Canh lề trên
             children: List.generate(services.length, (index) {
+              // ... (Animation giữ nguyên)
               final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
                 CurvedAnimation(
                   parent: _listAnimationController,
@@ -450,72 +535,48 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Column(
       children: [
         Container(
-          width: 70,
-          height: 70,
+          width: 68,
+          height: 68,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            color: Colors.white, // Nền trắng tinh
+            borderRadius: BorderRadius.circular(20), // Bo tròn nhiều hơn
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
+                // Shadow kiểu "bloom" nhẹ nhàng
+                  color: _accentColor.withOpacity(0.1),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                  spreadRadius: 1
               ),
             ],
           ),
-          child: Icon(icon, color: const Color(0xFFF25278), size: 32),
+          child: Icon(icon, color: _accentColor, size: 30),
         ),
-        const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        const SizedBox(height: 10),
+        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _primaryText)),
       ],
     );
   }
 
   // ============================================================
-  // ===================== MOST MONTHLY ==========================
+  // ===================== MOST MONTHLY =========================
   // ============================================================
 
   Widget _buildMostMonthly() {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
-                'Most Monthly',
-                style: TextStyle(
-                  color: Color(0xFF313235),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                'See all',
-                style: TextStyle(
-                  color: Color(0xFFDE2057),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
+        _buildSectionHeader('Most Popular', () {}),
+        const SizedBox(height: 16),
         SizedBox(
-          height: 250, // Give a fixed height to the horizontal list
+          height: 260,
           child: StreamBuilder<QuerySnapshot>(
+            // ... (Giữ nguyên logic StreamBuilder)
             stream: FirebaseFirestore.instance.collection('nails').orderBy('likes', descending: true).snapshots(),
             builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return const Center(child: Text('Something went wrong'));
-              }
-
+              if (snapshot.hasError) return const Center(child: Text('Something went wrong'));
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return Center(child: CircularProgressIndicator(color: _accentColor));
               }
-
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return const Center(child: Text("No nails found"));
               }
@@ -524,10 +585,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
               return SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.only(left: 16),
+                padding: const EdgeInsets.only(left: 20, bottom: 10),
                 physics: const BouncingScrollPhysics(),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: List.generate(products.length, (index) {
+                    final nailId = products[index].id;
                     final productData = products[index].data() as Map<String, dynamic>;
                     final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
                       CurvedAnimation(
@@ -551,25 +614,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ),
                         );
                       },
-                      child: GestureDetector(
-                        onTap: () {
-                          // TODO: Pass product data to the detail screen
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const NailDetailScreen(),
-                            ),
-                          );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 12.0),
-                          child: _buildProductCard(
-                            name: productData['name'] ?? 'No Name',
-                            price: (productData['price'] ?? 0).toString(),
-                            likes: (productData['likes'] ?? 0).toString(),
-                            imgUrl: productData['img_url'] ?? 'assets/images/nail1.png',
-                          ),
-                        ),
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: NailCard(nailId: nailId, productData: productData),
                       ),
                     );
                   }),
@@ -582,215 +629,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // ---------------- PRODUCT CARD -------------------
-  Widget _buildProductCard(
-      {required String name, required String price, required String likes, required String imgUrl}) {
-    return Container(
-      width: 168,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF6F6F7),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.07),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  imgUrl,
-                  width: 152,
-                  height: 152,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 152,
-                      height: 152,
-                      color: Colors.grey.shade200,
-                      child: const Icon(Icons.broken_image, color: Colors.grey),
-                    );
-                  },
-                ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: 14,
-                  child: Icon(
-                    Icons.favorite_border,
-                    size: 16,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ),
-            ],
-          ),
 
-          const SizedBox(height: 8),
-
-          Text(
-            name,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-
-          const SizedBox(height: 4),
-
-          Text(
-            '${(int.tryParse(likes) ?? 0)} likes',
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-
-          const SizedBox(height: 5),
-
-          Text(
-            '\$$price',
-            style: const TextStyle(
-              color: Color(0xFFF25278),
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  // ---------------- SALON CARD -------------------
-  Widget _buildSalonCard({required String name, required String address, required String imgUrl}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE0E2E5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(16),
-            ),
-            child: Image.asset(
-              imgUrl,
-              height: 166,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 166,
-                  width: double.infinity,
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.broken_image, color: Colors.grey),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(14.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const Icon(Icons.bookmark_border, size: 22),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.location_on_outlined, color: Colors.grey, size: 16),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        address,
-                        style: const TextStyle(color: Colors.grey, fontSize: 14),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
   // ============================================================
-  // ==================== SALONS NEAR YOU ========================
+  // ==================== SALONS NEAR YOU =======================
   // ============================================================
 
   Widget _buildSalonsNearYou() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
-                'Salons Near You',
-                style: TextStyle(
-                  color: Color(0xFF313235),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                'See all',
-                style: TextStyle(
-                  color: Color(0xFFDE2057),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
+        _buildSectionHeader('Salons Near You', () {}),
+        const SizedBox(height: 16),
         StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance.collection('stores').snapshots(),
           builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return const Center(child: Text('Something went wrong'));
-            }
-
+            if (snapshot.hasError) return const Center(child: Text('Something went wrong'));
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return Center(child: CircularProgressIndicator(color: _accentColor));
             }
-
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return const Center(child: Text("No stores found"));
             }
@@ -799,15 +655,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
             return ListView.builder(
               shrinkWrap: true,
+              padding: EdgeInsets.zero,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: stores.length,
               itemBuilder: (context, index) {
+                final storeId = stores[index].id;
                 final storeData = stores[index].data() as Map<String, dynamic>;
+                // ... (Animation giữ nguyên)
                 final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
                   CurvedAnimation(
                     parent: _listAnimationController,
                     curve: Interval(
-                      0.7 + (0.1 * index).clamp(0.0, 0.3), // Stagger the animation
+                      0.7 + (0.1 * index).clamp(0.0, 0.3),
                       1.0,
                       curve: Curves.easeOutCubic,
                     ),
@@ -826,11 +685,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     );
                   },
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    child: _buildSalonCard(
-                      name: storeData['name'] ?? 'No Name',
-                      address: storeData['address'] ?? 'No Address',
-                      imgUrl: storeData['img_url'] ?? 'assets/images/store1.png',
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    child: StoreCard(
+                      storeId: storeId,
+                      storeData: storeData,
                     ),
                   ),
                 );
