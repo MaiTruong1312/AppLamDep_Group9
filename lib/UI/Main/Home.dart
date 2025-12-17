@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// Đảm bảo các import này đúng với cấu trúc dự án của bạn
+import 'package:confetti/confetti.dart';
+import 'dart:math';
+
+import '../../models/nail_model.dart';
 import '../detail/nail_detail_screen.dart';
 import '../../widgets/nail_card.dart';
 import '../../widgets/store_card.dart';
@@ -22,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late AnimationController _fadeAnimationController;
   late Animation<double> _fadeAnimation;
   late AnimationController _listAnimationController;
+  late ConfettiController _confettiController;
 
   // Màu chủ đạo (Accent Color) - Dùng đồng bộ
   final Color _accentColor = const Color(0xFFF25278);
@@ -50,6 +54,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
+    
+    _confettiController = ConfettiController(duration: const Duration(seconds: 1));
+
+    // Play confetti animation after a short delay
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if(mounted) {
+        _confettiController.play();
+      }
+    });
 
     _fadeAnimationController.forward();
     _listAnimationController.forward();
@@ -60,6 +73,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _pageController.dispose();
     _fadeAnimationController.dispose();
     _listAnimationController.dispose();
+    _confettiController.dispose();
     super.dispose();
   }
 
@@ -106,12 +120,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         _buildSpecialOffers(),
                         const SizedBox(height: 24),
 
-                        // ---------------- SERVICES GRID ----------------
-                        _buildServicesList(),
-                        const SizedBox(height: 24),
-
                         // ---------------- MOST MONTHLY ----------------
                         _buildMostMonthly(),
+                        const SizedBox(height: 24),
+
+                        // ---------------- HOT TREND ----------------
+                        _buildHotTrendNails(),
+                        const SizedBox(height: 24),
+
+                        // ---------------- BEST CHOICE ----------------
+                        _buildBestChoiceNails(),
                         const SizedBox(height: 24),
 
                         // ---------------- SALONS NEAR YOU ----------------
@@ -142,6 +160,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ]
                     )
                 ),
+              ),
+            ),
+            
+            // --- CONGRATULATORY CONFETTI ---
+            Align(
+              alignment: Alignment.topCenter,
+              child: ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirectionality: BlastDirectionality.explosive, // Shoots in all directions
+                shouldLoop: false,
+                colors: const [
+                  Colors.red, Colors.amber, Colors.blue, Colors.pinkAccent, Colors.purpleAccent, Colors.greenAccent
+                ], // Brighter, more festive colors
+                createParticlePath: (size) { // Custom path for a star shape
+                  final path = Path();
+                  path.addOval(Rect.fromCircle(center: Offset.zero, radius: 6)); // Bigger particles
+                  return path;
+                },
+                emissionFrequency: 0.02,    // Burst denser
+                numberOfParticles: 50,      // More particles for a bigger "wow"
+                gravity: 0.3,               // A bit faster
+                particleDrag: 0.05,           // Slows down particles over time
               ),
             ),
           ],
@@ -442,7 +482,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 '$percent OFF',
                 style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 36, // Điều chỉnh lại size cho cân đối
+                    fontSize: 36,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.5
                 ),
@@ -473,88 +513,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         color: active ? _accentColor : Colors.grey.shade300, // Màu inactive nhạt hơn
         borderRadius: BorderRadius.circular(4),
       ),
-    );
-  }
-
-  // ============================================================
-  // ======================= SERVICES (Cải tiến) ==================
-  // ============================================================
-
-  Widget _buildServicesList() {
-    final services = [
-      {'label': 'Nails', 'icon': Icons.spa_rounded},
-      {'label': 'Eye', 'icon': Icons.visibility_rounded},
-      {'label': 'Facial', 'icon': Icons.face_retouching_natural_rounded},
-      {'label': 'Hair Cut', 'icon': Icons.content_cut_rounded},
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          _buildSectionHeader('Services', () {}),
-          const SizedBox(height: 16),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start, // Canh lề trên
-            children: List.generate(services.length, (index) {
-              // ... (Animation giữ nguyên)
-              final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
-                CurvedAnimation(
-                  parent: _listAnimationController,
-                  curve: Interval(
-                    0.1 * index, 0.5 + 0.1 * index,
-                    curve: Curves.easeOutCubic,
-                  ),
-                ),
-              );
-
-              return AnimatedBuilder(
-                animation: _listAnimationController,
-                builder: (context, child) {
-                  return FadeTransition(
-                    opacity: animation,
-                    child: Transform.translate(
-                      offset: Offset(0.0, 50 * (1.0 - animation.value)),
-                      child: child,
-                    ),
-                  );
-                },
-                child: _buildServiceItem(
-                    services[index]['label'] as String, services[index]['icon'] as IconData),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildServiceItem(String label, IconData icon) {
-    return Column(
-      children: [
-        Container(
-          width: 68,
-          height: 68,
-          decoration: BoxDecoration(
-            color: Colors.white, // Nền trắng tinh
-            borderRadius: BorderRadius.circular(20), // Bo tròn nhiều hơn
-            boxShadow: [
-              BoxShadow(
-                // Shadow kiểu "bloom" nhẹ nhàng
-                  color: _accentColor.withOpacity(0.1),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                  spreadRadius: 1
-              ),
-            ],
-          ),
-          child: Icon(icon, color: _accentColor, size: 30),
-        ),
-        const SizedBox(height: 10),
-        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _primaryText)),
-      ],
     );
   }
 
@@ -590,8 +548,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: List.generate(products.length, (index) {
-                    final nailId = products[index].id;
-                    final productData = products[index].data() as Map<String, dynamic>;
+                    final nail = Nail.fromFirestore(products[index]);
                     final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
                       CurvedAnimation(
                         parent: _listAnimationController,
@@ -616,7 +573,145 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       },
                       child: Padding(
                         padding: const EdgeInsets.only(right: 16.0),
-                        child: NailCard(nailId: nailId, productData: productData),
+                        child: NailCard(nail: nail),
+                      ),
+                    );
+                  }),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // ===================== HOT TREND NAILS ======================
+  // ============================================================
+
+  Widget _buildHotTrendNails() {
+    return Column(
+      children: [
+        _buildSectionHeader('Hot Trend', () {}),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 260,
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('nails').where('tags', arrayContains: 'Hot Trend').snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) return const Center(child: Text('Something went wrong'));
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator(color: _accentColor));
+              }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(child: Text("No hot trend nails found"));
+              }
+
+              final products = snapshot.data!.docs;
+
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(left: 20, bottom: 10),
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: List.generate(products.length, (index) {
+                    final nail = Nail.fromFirestore(products[index]);
+                    final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
+                      CurvedAnimation(
+                        parent: _listAnimationController,
+                        curve: Interval(
+                          0.5 + (0.1 * index), // Adjust animation timing
+                          0.9 + (0.1 * index),
+                          curve: Curves.easeOutCubic,
+                        ),
+                      ),
+                    );
+
+                    return AnimatedBuilder(
+                      animation: _listAnimationController,
+                      builder: (context, child) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: Transform.translate(
+                            offset: Offset(50 * (1.0 - animation.value), 0.0),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: NailCard(nail: nail),
+                      ),
+                    );
+                  }),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // ===================== BEST CHOICE NAILS ====================
+  // ============================================================
+
+  Widget _buildBestChoiceNails() {
+    return Column(
+      children: [
+        _buildSectionHeader('Best Choice', () {}),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 260,
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('nails').where('tags', arrayContains: 'Best Choice').snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) return const Center(child: Text('Something went wrong'));
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator(color: _accentColor));
+              }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(child: Text("No best choice nails found"));
+              }
+
+              final products = snapshot.data!.docs;
+
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(left: 20, bottom: 10),
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: List.generate(products.length, (index) {
+                    final nail = Nail.fromFirestore(products[index]);
+                    final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
+                      CurvedAnimation(
+                        parent: _listAnimationController,
+                        curve: Interval(
+                          0.6 + (0.1 * index), // Adjust animation timing
+                          1.0 + (0.1 * index),
+                          curve: Curves.easeOutCubic,
+                        ),
+                      ),
+                    );
+
+                    return AnimatedBuilder(
+                      animation: _listAnimationController,
+                      builder: (context, child) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: Transform.translate(
+                            offset: Offset(50 * (1.0 - animation.value), 0.0),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: NailCard(nail: nail),
                       ),
                     );
                   }),

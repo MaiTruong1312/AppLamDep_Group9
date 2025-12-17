@@ -1,3 +1,4 @@
+import 'package:applamdep/models/nail_model.dart';
 import 'package:applamdep/widgets/nail_card.dart';
 import 'package:applamdep/widgets/store_card.dart';
 import 'package:flutter/material.dart';
@@ -110,9 +111,8 @@ class WishlistScreen extends StatelessWidget {
                   // You can return an empty container or a placeholder
                   return const SizedBox.shrink();
                 }
-                final productData =
-                    nailSnapshot.data!.data() as Map<String, dynamic>;
-                return NailCard(nailId: nailId, productData: productData);
+                final nail = Nail.fromFirestore(nailSnapshot.data!);
+                return NailCard(nail: nail);
               },
             );
           },
