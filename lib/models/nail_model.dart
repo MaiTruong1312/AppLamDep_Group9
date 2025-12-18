@@ -29,7 +29,7 @@ class Nail {
     return Nail(
       id: doc.id,
       name: data['name'] ?? 'No Name',
-      imgUrl: data['img_url'] ?? 'assets/images/nail_placeholder.png',
+      imgUrl: data['img_url'] ?? 'assets/images/nail1.png',
       likes: data['likes'] ?? 0,
       price: data['price'] ?? 0,
       description: data['descriptions'] ?? 'No description available.',

@@ -22,7 +22,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _dobController;
-  String _gender = 'Nam';
+  String _gender = 'Male';
   File? _imageFile;
   Country _selectedCountry = Country(
     phoneCode: '84',
@@ -97,7 +97,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return downloadUrl;
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi tải lên ảnh đại diện: $e')),
+        SnackBar(content: Text('Error uploading profile picture: $e')),
       );
       return null;
     }
@@ -127,12 +127,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Hồ sơ đã được cập nhật!')),
+        const SnackBar(content: Text('Profile has been updated!')),
       );
       Navigator.pop(context, true); // Pop and indicate success
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi lưu hồ sơ: $e')),
+        SnackBar(content: Text('Error when saving profile: $e')),
       );
     }
   }
@@ -150,9 +150,9 @@ Widget build(BuildContext context) {
           _buildAvatar(),
           const SizedBox(height: 40),
           _buildTextField(
-            label: "Tên",
+            label: "Full name",
             controller: _nameController,
-            hint: "Nhập tên của bạn",
+            hint: "Enter your name",
           ),
           const SizedBox(height: 20),
           _buildPhoneNumberField(),
@@ -160,7 +160,7 @@ Widget build(BuildContext context) {
           _buildGenderSelector(),
           const SizedBox(height: 20),
           _buildDateField(
-            label: "Ngày sinh",
+            label: "Birthday",
             controller: _dobController,
             hint: "DD/MM/YYYY",
           ),
@@ -288,7 +288,7 @@ Widget _buildPhoneNumberField() {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       const Text(
-        "Số điện thoại",
+        "Phone number",
         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
       ),
       const SizedBox(height: 8),
@@ -296,7 +296,7 @@ Widget _buildPhoneNumberField() {
         controller: _phoneController,
         keyboardType: TextInputType.phone,
         decoration: InputDecoration(
-          hintText: "Nhập số điện thoại",
+          hintText: "Enter phone number",
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
           ),
@@ -345,30 +345,30 @@ Widget _buildPhoneNumberField() {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          "Giới tính",
+          "Gender",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
             Radio<String>(
-              value: 'Nam',
+              value: 'Male',
               groupValue: _gender,
               onChanged: (value) => setState(() => _gender = value!),
             ),
-            const Text('Nam'),
+            const Text('Male'),
             Radio<String>(
-              value: 'Nữ',
+              value: 'Female',
               groupValue: _gender,
               onChanged: (value) => setState(() => _gender = value!),
             ),
-            const Text('Nữ'),
+            const Text('Female'),
             Radio<String>(
-              value: 'Khác',
+              value: 'Other',
               groupValue: _gender,
               onChanged: (value) => setState(() => _gender = value!),
             ),
-            const Text('Khác'),
+            const Text('Other'),
           ],
         ),
       ],
