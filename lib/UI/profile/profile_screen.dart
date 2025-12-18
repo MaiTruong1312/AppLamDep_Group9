@@ -2,6 +2,12 @@ import 'package:applamdep/UI/profile/wishlist_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:applamdep/UI/Login/mainlogin.dart';
 import 'package:applamdep/UI/profile/edit_profile_screen.dart';
+import 'package:applamdep/UI/profile/Notification_screen.dart';
+import 'package:applamdep/UI/profile/AcountScurity.dart';
+import 'package:applamdep/UI/profile/Linked_appearance.dart';
+import 'package:applamdep/UI/profile/help_support_screen.dart';
+import 'package:applamdep/UI/profile/PaymentMethod.dart';
+import 'package:applamdep/UI/profile/my_booking_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -189,7 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               const Text(
                 'Complete your profile',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF313235)),
               ),
               Container(
                 padding: const EdgeInsets.all(4),
@@ -213,7 +219,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              const Text('20%', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('20%', style: TextStyle(fontWeight: FontWeight.bold,color: Color(0xFF313235))),
               const SizedBox(width: 8),
               Expanded(
                 child: ClipRRect(
@@ -307,17 +313,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // 5. Grid Menu (2x2)
   Widget _buildGridMenu() {
     final items = [
-      {'icon': Icons.cached, 'label': 'My Booking', 'color': Colors.green},
+      {'icon': Icons.cached, 'label': 'My Booking', 'color': const Color(0xFF4CAF50)},
       {
         'icon': Icons.bookmark_border,
-        'label': 'Wish List',
-        'color': Colors.orange,
+        'label': 'Saved collection', // Đã đổi tên nhãn
+        'color': const Color(0xFFFF9800),
       },
-      {'icon': Icons.receipt_long, 'label': 'Receipts', 'color': Colors.blue},
+      {'icon': Icons.receipt_long, 'label': 'Receipts', 'color': const Color(0xFF2196F3)},
       {
         'icon': Icons.local_offer_outlined,
         'label': 'Coupons',
-        'color': Colors.redAccent,
+        'color': const Color(0xFFFF5722),
       },
     ];
 
@@ -328,39 +334,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
         crossAxisCount: 2,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 2.5, // Tỷ lệ chiều rộng/cao để khớp thiết kế
+        childAspectRatio: 1.4, // GIẢM giá trị này để ô CAO hơn, hết lỗi overflow
       ),
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
-        return InkWell( // Wrap with InkWell for tap effect
+        return InkWell(
           onTap: () {
-            if (item['label'] == 'Wish List') {
+            if (item['label'] == 'My Booking') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MyBookingScreen()),
+              );
+            }
+            else if (item['label'] == 'Saved collection' || item['label'] == 'Wish List') {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const WishlistScreen()),
               );
             }
-            // You can add navigation for other items here as well
           },
           borderRadius: BorderRadius.circular(12),
           child: Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16), // Padding rộng hơn cho thoáng
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start, // Căn lề trái giống hình
+              mainAxisAlignment: MainAxisAlignment.spaceBetween, // Đẩy Icon lên trên, Text xuống dưới
               children: [
-                Icon(item['icon'] as IconData, color: item['color'] as Color),
-                const SizedBox(height: 8),
+                Icon(
+                  item['icon'] as IconData,
+                  color: item['color'] as Color,
+                  size: 26,
+                ),
                 Text(
                   item['label'] as String,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
+                    color: Color(0xFF313235),
                   ),
                 ),
               ],
@@ -380,7 +395,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       {'icon': Icons.sync_alt, 'label': 'Linked Appearance'}, // Icon giả định
       {
         'icon': Icons.visibility_outlined,
-        'label': 'App Appearance',
+        'label': 'App Language',
       }, // Icon giả định cho App Language/Appearance
       {'icon': Icons.help_outline, 'label': 'Help & Support'},
     ];
@@ -408,7 +423,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
             trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-            onTap: () {},
+            onTap: () {
+              final label = item['label'] as String;
+
+              if (label == 'Notifications') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const NotificationScreen()),
+                );
+              } else if (label == 'Account & Security') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AccountSecurityScreen()),
+                );
+              } else if (label == 'Linked Appearance') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LinkedAppearanceScreen()),
+                );
+              }else if (label == 'Payment Methods') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PaymentMethodScreen()),
+                );
+              }
+              else if (label == 'Help & Support') {
+                // Thêm điều hướng cho màn hình hỗ trợ
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
+                );
+              }
+            },
           );
         },
       ),
@@ -434,14 +480,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: const Text('Yes', style: TextStyle(color: Color(0xFFF25278), fontWeight: FontWeight.bold)),
                 onPressed: () async {
                   Navigator.of(dialogContext).pop();
-                  
+
                   // Sign out from Firebase
                   await _auth.signOut();
 
                   // Clear SharedPreferences
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.setBool('isLoggedIn', false);
-                  
+
                   if (!mounted) return;
 
                   // Navigate to login screen
