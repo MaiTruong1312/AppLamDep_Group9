@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:applamdep/UI/booking/your_appointment_screen.dart'; // Import trang Booking để chuyển khi nhấn "Book now"
 import 'package:applamdep/UI/booking/booking_screen.dart'; // Import trang Booking
+import 'package:applamdep/UI/booking/appointment_detail_screen.dart'; // Import trang Booking để chuyển khi nhấn "Book now"
 
 class BookNowScreen extends StatefulWidget {
   const BookNowScreen({super.key});
@@ -300,9 +301,17 @@ class _BookNowScreenState extends State<BookNowScreen> {
                 appointment.date,
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-              Text(
-                'See more',
-                style: const TextStyle(color: Color(0xFFF25278)),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AppointmentDetailScreen()),
+                  );
+                },
+                child: const Text(
+                  'See more',
+                  style: TextStyle(color: Color(0xFFF25278)),
+                ),
               ),
             ],
           ),

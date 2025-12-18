@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:applamdep/UI/booking/your_appointment_screen.dart';
+import 'package:applamdep/UI/booking/confirm_appointment_screen.dart';
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
@@ -307,9 +308,7 @@ class _BookingScreenState extends State<BookingScreen> {
               ],
             ),
           ),
-          if (totalServices > 0 &&
-              _selectedDay != null &&
-              _selectedTime.isNotEmpty)
+          if (totalServices > 0 && _selectedDay != null && _selectedTime.isNotEmpty)
             Positioned(
               left: 16,
               right: 16,
@@ -318,11 +317,14 @@ class _BookingScreenState extends State<BookingScreen> {
                 height: 60,
                 child: ElevatedButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Booking confirmed! (Demo)')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ConfirmAppointmentScreen(),
+                      ),
                     );
                   },
+
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF25278),
                     shape: RoundedRectangleBorder(
