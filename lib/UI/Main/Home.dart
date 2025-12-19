@@ -6,8 +6,10 @@ import 'dart:math';
 
 import '../../models/nail_model.dart';
 import '../detail/nail_detail_screen.dart';
+import 'search_screen.dart';
 import '../../widgets/nail_card.dart';
 import '../../widgets/store_card.dart';
+import '../../utils/seed_sample_data.dart'; // Import file seed data
 
 // ------------------ HOME SCREEN ------------------
 class HomeScreen extends StatefulWidget {
@@ -32,6 +34,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final Color _primaryText = const Color(0xFF313235);
   final Color _bgGrey = const Color(0xFFFAFAFA); // Nền sáng hơn một chút
 
+  // Biến để kiểm soát nút seed (chỉ hiện trong dev mode)
+  bool _showSeedButton = false;
+  int _secretTapCount = 0;
+  DateTime? _lastTapTime;
+  final SampleDataSeeder _seeder = SampleDataSeeder();
+
   @override
   void initState() {
     super.initState();
@@ -54,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
-    
+
     _confettiController = ConfettiController(duration: const Duration(seconds: 1));
 
     // Play confetti animation after a short delay
@@ -80,12 +88,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgGrey, // Sử dụng màu nền mới
+      backgroundColor: _bgGrey,
       body: Container(
         width: double.infinity,
         height: double.infinity,
         clipBehavior: Clip.antiAlias,
-        // Thêm gradient nhẹ cho nền để tạo chiều sâu cao cấp
         decoration: BoxDecoration(
             gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -107,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 physics: const BouncingScrollPhysics(),
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 24), // Tăng padding dọc
+                  padding: const EdgeInsets.symmetric(vertical: 24),
                   child: FadeTransition(
                     opacity: _fadeAnimation,
                     child: Column(
@@ -136,6 +143,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         _buildSalonsNearYou(),
 
                         const SizedBox(height: 40),
+
+                        // ---------------- SEED DATA BUTTON (Tạm thời) ----------------
+                        if (_showSeedButton) _buildSeedDataButton(),
+
+                        const SizedBox(height: 60), // Thêm padding cuối
                       ],
                     ),
                   ),
@@ -148,40 +160,43 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               left: 0,
               top: 0,
               right: 0,
-              child: Container(
-                height: 52,
-                decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.white.withOpacity(0.9),
-                          Colors.white.withOpacity(0.0),
-                        ]
-                    )
+              child: GestureDetector(
+                onTap: _handleSecretTap,
+                child: Container(
+                  height: 52,
+                  decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.white.withOpacity(0.9),
+                            Colors.white.withOpacity(0.0),
+                          ]
+                      )
+                  ),
                 ),
               ),
             ),
-            
+
             // --- CONGRATULATORY CONFETTI ---
             Align(
               alignment: Alignment.topCenter,
               child: ConfettiWidget(
                 confettiController: _confettiController,
-                blastDirectionality: BlastDirectionality.explosive, // Shoots in all directions
+                blastDirectionality: BlastDirectionality.explosive,
                 shouldLoop: false,
                 colors: const [
                   Colors.red, Colors.amber, Colors.blue, Colors.pinkAccent, Colors.purpleAccent, Colors.greenAccent
-                ], // Brighter, more festive colors
-                createParticlePath: (size) { // Custom path for a star shape
+                ],
+                createParticlePath: (size) {
                   final path = Path();
-                  path.addOval(Rect.fromCircle(center: Offset.zero, radius: 6)); // Bigger particles
+                  path.addOval(Rect.fromCircle(center: Offset.zero, radius: 6));
                   return path;
                 },
-                emissionFrequency: 0.02,    // Burst denser
-                numberOfParticles: 50,      // More particles for a bigger "wow"
-                gravity: 0.3,               // A bit faster
-                particleDrag: 0.05,           // Slows down particles over time
+                emissionFrequency: 0.02,
+                numberOfParticles: 50,
+                gravity: 0.3,
+                particleDrag: 0.05,
               ),
             ),
           ],
@@ -191,16 +206,345 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // ============================================================
-  // ===================== TOP SECTION (Cải tiến) =================
+  // ===================== SEED DATA BUTTON =====================
+  // ============================================================
+
+  Widget _buildSeedDataButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.developer_mode, color: Colors.orange.shade700),
+              const SizedBox(width: 8),
+              Text( // BỎ const
+                'Developer Tools',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text( // BỎ const
+            'Seed data for testing purposes only',
+            style: TextStyle(
+              color: Colors.orange.shade800, // ĐƯỢC vì không còn const
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              // Button 1: Enhance Stores
+              ElevatedButton.icon(
+                onPressed: () => _showSeedDialog('stores'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                icon: const Icon(Icons.store, size: 18),
+                label: const Text('Enhance Stores'),
+              ),
+
+              // Button 2: Enhance Nails
+              ElevatedButton.icon(
+                onPressed: () => _showSeedDialog('nails'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.pink,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                icon: const Icon(Icons.brush, size: 18),
+                label: const Text('Enhance Nails'),
+              ),
+
+              // Button 3: Show Indexes
+              ElevatedButton.icon(
+                onPressed: () => _showSeedDialog('indexes'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                icon: const Icon(Icons.list, size: 18),
+                label: const Text('Show Indexes'),
+              ),
+
+              // Button 4: Hide Button
+              ElevatedButton.icon(
+                onPressed: () => setState(() => _showSeedButton = false),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                icon: const Icon(Icons.visibility_off, size: 18),
+                label: const Text('Hide'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // ===================== SECRET TAP HANDLER ===================
+  // ============================================================
+
+  void _handleSecretTap() {
+    final now = DateTime.now();
+
+    // Reset counter nếu quá 3 giây
+    if (_lastTapTime == null ||
+        now.difference(_lastTapTime!) > const Duration(seconds: 3)) {
+      _secretTapCount = 1;
+    } else {
+      _secretTapCount++;
+    }
+
+    _lastTapTime = now;
+
+    // Hiện nút seed nếu tap 5 lần
+    if (_secretTapCount >= 5) {
+      setState(() {
+        _showSeedButton = true;
+        _secretTapCount = 0;
+      });
+
+      // Hiện snackbar thông báo
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Developer tools activated'),
+          backgroundColor: Colors.orange.shade700,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  // ============================================================
+  // ===================== SEED DIALOG ==========================
+  // ============================================================
+
+  Future<void> _showSeedDialog(String type) async {
+    String title = '';
+    String message = '';
+    Future<void> Function()? onConfirm; // Thay đổi kiểu dữ liệu
+
+    switch (type) {
+      case 'stores':
+        title = 'Enhance Stores';
+        message = 'This will add search-friendly fields to all stores. Continue?';
+        onConfirm = _seedStores; // Không cần gọi () ở đây
+        break;
+      case 'nails':
+        title = 'Enhance Nails';
+        message = 'This will add search-friendly fields to all nails. Continue?';
+        onConfirm = _seedNails; // Không cần gọi () ở đây
+        break;
+      case 'indexes':
+        title = 'Required Indexes';
+        message = 'This will show required Firestore indexes.';
+        onConfirm = null;
+        break;
+    }
+
+    if (type == 'indexes') {
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(title),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Required Firestore indexes:'),
+                const SizedBox(height: 16),
+                const Text('📌 Stores Collection:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('• name_lowercase (Asc), __name__ (Asc)'),
+                const Text('• address_lowercase (Asc), __name__ (Asc)'),
+                const Text('• tags (Array Contains), __name__ (Asc)'),
+                const SizedBox(height: 12),
+                const Text('📌 Nails Collection:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('• name_lowercase (Asc), __name__ (Asc)'),
+                const Text('• tags (Array Contains), __name__ (Asc)'),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  color: Colors.blue[50],
+                  child: const Text(
+                    'Go to: Firebase Console → Firestore → Indexes → Add Index',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Continue', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed == true && onConfirm != null) {
+        await onConfirm(); // BÂY GIỜ có thể await vì onConfirm trả về Future<void>
+      }
+    }
+  }
+
+  // ============================================================
+  // ===================== SEED FUNCTIONS =======================
+  // ============================================================
+
+  Future<void> _seedStores() async {
+    final scaffoldContext = ScaffoldMessenger.of(context);
+
+    // Show loading
+    scaffoldContext.showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            CircularProgressIndicator(color: Colors.white),
+            SizedBox(width: 16),
+            Text('Enhancing stores...'),
+          ],
+        ),
+        duration: Duration(seconds: 10),
+      ),
+    );
+
+    try {
+      await _seeder.enhanceExistingStores();
+
+      // Remove loading snackbar
+      scaffoldContext.hideCurrentSnackBar();
+
+      // Show success
+      scaffoldContext.showSnackBar(
+        const SnackBar(
+          content: Text('✅ Stores enhanced successfully!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Refresh UI
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      scaffoldContext.hideCurrentSnackBar();
+
+      scaffoldContext.showSnackBar(
+        SnackBar(
+          content: Text('❌ Error: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _seedNails() async {
+    final scaffoldContext = ScaffoldMessenger.of(context);
+
+    // Show loading
+    scaffoldContext.showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            CircularProgressIndicator(color: Colors.white),
+            SizedBox(width: 16),
+            Text('Enhancing nails...'),
+          ],
+        ),
+        duration: Duration(seconds: 10),
+      ),
+    );
+
+    try {
+      await _seeder.enhanceExistingNails();
+
+      // Remove loading snackbar
+      scaffoldContext.hideCurrentSnackBar();
+
+      // Show success
+      scaffoldContext.showSnackBar(
+        const SnackBar(
+          content: Text('✅ Nails enhanced successfully!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Refresh UI
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      scaffoldContext.hideCurrentSnackBar();
+
+      scaffoldContext.showSnackBar(
+        SnackBar(
+          content: Text('❌ Error: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showIndexes() async {
+    // Already handled in _showSeedDialog
+  }
+
+  // ============================================================
+  // ===================== CÁC PHẦN KHÁC GIỮ NGUYÊN =============
   // ============================================================
 
   Widget _buildTopSection() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20), // Tăng padding ngang
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Greeting + Notification
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -222,14 +566,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     _userName ?? 'Guest',
                     style: TextStyle(
                       color: _primaryText,
-                      fontSize: 22, // Font lớn hơn chút
-                      fontWeight: FontWeight.w800, // Đậm hơn
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ],
               ),
-
-              // Notification icon - Soft Shadow
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -237,7 +579,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08), // Shadow nhẹ hơn
+                      color: Colors.black.withOpacity(0.08),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     )
@@ -247,43 +589,47 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ],
           ),
-
           const SizedBox(height: 24),
-
-          // ---------------- SEARCH BAR (Cải tiến) ----------------
-          Container(
-            width: double.infinity,
-            height: 56,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(
-              color: Colors.white, // Nền trắng tinh
-              borderRadius: BorderRadius.circular(18), // Bo tròn nhiều hơn
-              border: Border.all(color: Colors.grey.shade100), // Viền rất nhẹ
-              boxShadow: [
-                BoxShadow(
-                  // Shadow màu hồng nhẹ tạo cảm giác "glow"
-                  color: _accentColor.withOpacity(0.08),
-                  blurRadius: 15,
-                  offset: const Offset(0, 6),
-                  spreadRadius: 0,
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.search_rounded, color: _accentColor, size: 26), // Icon màu accent
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    'Search services, salons...',
-                    style: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w400,
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SearchScreen()),
+              );
+            },
+            child: Container(
+              width: double.infinity,
+              height: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.grey.shade100),
+                boxShadow: [
+                  BoxShadow(
+                    color: _accentColor.withOpacity(0.08),
+                    blurRadius: 15,
+                    offset: const Offset(0, 6),
+                    spreadRadius: 0,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.search_rounded, color: _accentColor, size: 26),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Text(
+                      'Search services, salons...',
+                      style: TextStyle(
+                        color: Color(0xFF9098B1),
+                        fontSize: 17,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -291,11 +637,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // ============================================================
-  // ===================== SPECIAL OFFERS (Giữ nguyên logic) =====
-  // ============================================================
-
-  // Helper widget cho tiêu đề section
+  // Các phương thức cũ giữ nguyên từ đây xuống...
   Widget _buildSectionHeader(String title, VoidCallback onSeeAllTap) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -308,7 +650,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             style: TextStyle(
               color: _primaryText,
               fontSize: 20,
-              fontWeight: FontWeight.w800, // Đậm hơn
+              fontWeight: FontWeight.w800,
             ),
           ),
           InkWell(
@@ -331,14 +673,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-
   Widget _buildSpecialOffers() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('banners').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) return const SizedBox.shrink();
         if (snapshot.connectionState == ConnectionState.waiting) {
-          // Placeholder đẹp hơn khi loading
           return Container(
             height: 166,
             margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -369,10 +709,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // Horizontal Banner
                 SizedBox(
-                  height: 170, // Tăng nhẹ chiều cao
+                  height: 170,
                   child: PageView.builder(
                     controller: _pageController,
                     physics: const BouncingScrollPhysics(),
@@ -395,14 +733,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             value = (_pageController.page ?? 0) - index;
                             value = (1 - (value.abs() * 0.3)).clamp(0.0, 1.0);
                           }
-                          // Thêm opacity effect khi scale
                           final opacity = Curves.easeOut.transform((1 - (value.abs() * 0.5)).clamp(0.0, 1.0));
                           return Center(
                             child: Opacity(
                               opacity: opacity,
                               child: SizedBox(
                                 height: Curves.easeOut.transform(value) * 170,
-                                width: Curves.easeOut.transform(value) * 300, // Rộng hơn chút
+                                width: Curves.easeOut.transform(value) * 300,
                                 child: child,
                               ),
                             ),
@@ -416,10 +753,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     },
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
-                // Indicators
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
@@ -435,16 +769,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // ---------------- Banner Card (Cải tiến shadow) -------------------
   Widget _buildOfferBanner({required String image, required String percent}) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), // Thêm margin dọc để tránh cắt shadow
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24), // Bo góc lớn hơn
+        borderRadius: BorderRadius.circular(24),
         image: DecorationImage(image: AssetImage(image), fit: BoxFit.cover),
         boxShadow: [
           BoxShadow(
-              color: const Color(0xFFF25278).withOpacity(0.25), // Shadow màu hồng
+              color: const Color(0xFFF25278).withOpacity(0.25),
               blurRadius: 14,
               offset: const Offset(0, 6),
               spreadRadius: -2
@@ -456,7 +789,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
             colors: [
-              Colors.black.withOpacity(0.6), // Gradient tối hơn chút để nổi bật chữ
+              Colors.black.withOpacity(0.6),
               Colors.transparent,
             ],
             begin: Alignment.bottomLeft,
@@ -502,23 +835,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Indicator dot
   Widget _indicator({bool active = false}) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       margin: const EdgeInsets.symmetric(horizontal: 4),
-      width: active ? 24 : 8, // Ngắn hơn chút
+      width: active ? 24 : 8,
       height: 8,
       decoration: BoxDecoration(
-        color: active ? _accentColor : Colors.grey.shade300, // Màu inactive nhạt hơn
+        color: active ? _accentColor : Colors.grey.shade300,
         borderRadius: BorderRadius.circular(4),
       ),
     );
   }
-
-  // ============================================================
-  // ===================== MOST MONTHLY =========================
-  // ============================================================
 
   Widget _buildMostMonthly() {
     return Column(
@@ -528,7 +856,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         SizedBox(
           height: 260,
           child: StreamBuilder<QuerySnapshot>(
-            // ... (Giữ nguyên logic StreamBuilder)
             stream: FirebaseFirestore.instance.collection('nails').orderBy('likes', descending: true).snapshots(),
             builder: (context, snapshot) {
               if (snapshot.hasError) return const Center(child: Text('Something went wrong'));
@@ -586,10 +913,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // ============================================================
-  // ===================== HOT TREND NAILS ======================
-  // ============================================================
-
   Widget _buildHotTrendNails() {
     return Column(
       children: [
@@ -622,7 +945,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       CurvedAnimation(
                         parent: _listAnimationController,
                         curve: Interval(
-                          0.5 + (0.1 * index), // Adjust animation timing
+                          0.5 + (0.1 * index),
                           0.9 + (0.1 * index),
                           curve: Curves.easeOutCubic,
                         ),
@@ -654,10 +977,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ],
     );
   }
-
-  // ============================================================
-  // ===================== BEST CHOICE NAILS ====================
-  // ============================================================
 
   Widget _buildBestChoiceNails() {
     return Column(
@@ -691,7 +1010,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       CurvedAnimation(
                         parent: _listAnimationController,
                         curve: Interval(
-                          0.6 + (0.1 * index), // Adjust animation timing
+                          0.6 + (0.1 * index),
                           1.0 + (0.1 * index),
                           curve: Curves.easeOutCubic,
                         ),
@@ -724,11 +1043,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-
-  // ============================================================
-  // ==================== SALONS NEAR YOU =======================
-  // ============================================================
-
   Widget _buildSalonsNearYou() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -756,7 +1070,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               itemBuilder: (context, index) {
                 final storeId = stores[index].id;
                 final storeData = stores[index].data() as Map<String, dynamic>;
-                // ... (Animation giữ nguyên)
                 final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
                   CurvedAnimation(
                     parent: _listAnimationController,
