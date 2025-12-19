@@ -45,6 +45,7 @@ dependencies:
   mediapipe_genai: ^0.0.1
 
 dev_dependencies:
+  webview_flutter: ^4.4.2
   flutter_test:
     sdk: flutter
   integration_test:

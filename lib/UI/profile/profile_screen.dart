@@ -393,10 +393,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       {'icon': Icons.shield_outlined, 'label': 'Account & Security'},
       {'icon': Icons.payment, 'label': 'Payment Methods'},
       {'icon': Icons.sync_alt, 'label': 'Linked Appearance'}, // Icon giả định
-      {
-        'icon': Icons.visibility_outlined,
-        'label': 'App Language',
-      }, // Icon giả định cho App Language/Appearance
       {'icon': Icons.help_outline, 'label': 'Help & Support'},
     ];
 
