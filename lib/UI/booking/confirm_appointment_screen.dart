@@ -2,9 +2,26 @@
 
 import 'package:flutter/material.dart';
 import 'package:applamdep/UI/booking/credit_payment_screen.dart';
-
+import 'package:applamdep/models/nail_model.dart';
+import 'package:applamdep/models/store_model.dart';
 class ConfirmAppointmentScreen extends StatefulWidget {
-  const ConfirmAppointmentScreen({super.key});
+  final Map<String, dynamic>? bookingData;
+  final Nail? selectedNail;
+  final Store? selectedStore;
+
+  // Constructor mới
+  const ConfirmAppointmentScreen({
+    super.key,
+    this.bookingData,
+    this.selectedNail,
+    this.selectedStore,
+  });
+
+  // Constructor cũ (giữ cho tương thích)
+  const ConfirmAppointmentScreen.simple({super.key})
+      : bookingData = null,
+        selectedNail = null,
+        selectedStore = null;
 
   @override
   State<ConfirmAppointmentScreen> createState() => _ConfirmAppointmentScreenState();

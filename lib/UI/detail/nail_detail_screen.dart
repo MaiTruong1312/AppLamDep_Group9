@@ -12,11 +12,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-
+import 'package:applamdep/UI/booking/booking_screen.dart';
 class NailDetailScreen extends StatefulWidget {
   final Nail nail;
-
-  const NailDetailScreen({Key? key, required this.nail}) : super(key: key);
+  final Store? store;
+  const NailDetailScreen({Key? key, required this.nail,this.store,}) : super(key: key);
 
   @override
   _NailDetailScreenState createState() => _NailDetailScreenState();
@@ -1395,30 +1395,49 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
 
   Widget _buildBookingBar() {
     return Container(
-      margin: EdgeInsets.fromLTRB(20, 0, 20, 20),
-      padding: EdgeInsets.symmetric(horizontal: 10),
-      height: 65,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      height: 45,
       decoration: BoxDecoration(
         color: Colors.black,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 5))
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
         ],
       ),
       child: Row(
         children: [
+          // Nút chat
           IconButton(
-            onPressed: () {},
-            icon: Icon(Icons.chat_bubble_outline, color: Colors.white),
+            onPressed: _handleChat,
+            icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
           ),
-          VerticalDivider(color: Colors.white24, indent: 15, endIndent: 15, thickness: 1),
+
+          // Đường phân cách
+          const VerticalDivider(
+            color: Colors.white24,
+            indent: 15,
+            endIndent: 15,
+            thickness: 1,
+          ),
+
+          // Nút đặt lịch
           Expanded(
             child: InkWell(
-              onTap: () { /* Logic đặt lịch */ },
-              child: Center(
+              onTap: _handleBooking,
+              child: const Center(
                 child: Text(
                   'ĐẶT LỊCH NGAY',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.1),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    letterSpacing: 1.1,
+                  ),
                 ),
               ),
             ),
@@ -1427,4 +1446,186 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
       ),
     );
   }
+
+  // Xử lý chat với cửa hàng
+  void _handleChat() {
+    // Kiểm tra store có null không
+    if (widget.store == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không tìm thấy thông tin cửa hàng'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    print('Chat với cửa hàng: ${widget.store!.name}');
+
+    // Có thể mở màn hình chat hoặc liên kết Zalo
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Liên hệ: ${widget.store!.phone}'),
+        backgroundColor: Colors.black87,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        action: SnackBarAction(
+          label: 'Gọi',
+          textColor: Colors.white,
+          onPressed: () {
+            // launch('tel:${widget.store!.phone}');
+          },
+        ),
+      ),
+    );
+  }
+
+  // Xử lý đặt lịch
+  // Xử lý đặt lịch
+  void _handleBooking() {
+    // Kiểm tra xem BookingScreen có tồn tại không
+    try {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BookingScreen(
+            selectedNail: widget.nail,
+            selectedStore: widget.store,
+          ),
+        ),
+      );
+    } catch (e) {
+      print('Error navigating to BookingScreen: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể mở màn hình đặt lịch: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Các widget khác...
+  Widget _buildNailImage() {
+    return Container(
+      height: 300,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: NetworkImage(widget.nail.imgUrl),
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNailInfo() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.nail.name,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.star, color: Colors.amber, size: 20),
+              const SizedBox(width: 4),
+              Text(
+                '4.8',
+                style: TextStyle(
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Icon(Icons.favorite_border, color: Colors.grey[600], size: 20),
+              const SizedBox(width: 4),
+              Text(
+                '${widget.nail.likes}',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(widget.nail.price)}',
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFF25278),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDescription() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Mô tả',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            widget.nail.description,
+            style: TextStyle(
+              color: Colors.grey[700],
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviews() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Đánh giá',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          // TODO: Thêm danh sách đánh giá
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Center(
+              child: Text(
+                'Chưa có đánh giá nào',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
+

@@ -19,7 +19,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final BehaviorSubject<String> _searchSubject = BehaviorSubject<String>();
   Stream<SearchResult>? _resultsStream;
   List<String> _recentSearches = [];
-  List<String> _popularSearches = ['gel', 'đính đá', 'french', 'cưới', 'hàn quốc'];
+  List<String> _popularSearches = ['New', 'Hot Trend', 'Best Choice', 'cưới', 'hàn quốc'];
   List<String> _searchSuggestions = [];
   bool _showSuggestions = false;
   SearchCategory _selectedCategory = SearchCategory.all;
@@ -41,8 +41,7 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _loadRecentSearches() {
-    // Load từ SharedPreferences hoặc local storage
-    // _recentSearches = await _getRecentSearches();
+    // TODO: Load từ SharedPreferences
   }
 
   void _saveSearch(String query) {
@@ -55,9 +54,6 @@ class _SearchScreenState extends State<SearchScreen> {
         _recentSearches = _recentSearches.sublist(0, 5);
       }
     });
-
-    // Save to local storage
-    // _saveRecentSearches(_recentSearches);
   }
 
   void _updateSuggestions(String query) {
@@ -72,51 +68,22 @@ class _SearchScreenState extends State<SearchScreen> {
     final suggestions = <String>[];
     final lowerQuery = query.toLowerCase();
 
-    // Add popular searches that match
     for (var popular in _popularSearches) {
       if (popular.toLowerCase().contains(lowerQuery) && !suggestions.contains(popular)) {
         suggestions.add(popular);
       }
     }
 
-    // Add recent searches that match
     for (var recent in _recentSearches) {
       if (recent.toLowerCase().contains(lowerQuery) && !suggestions.contains(recent)) {
         suggestions.add(recent);
       }
     }
 
-    // Add tag suggestions
-    final tagSuggestions = _getTagSuggestions(query);
-    suggestions.addAll(tagSuggestions);
-
     setState(() {
       _searchSuggestions = suggestions.take(8).toList();
       _showSuggestions = suggestions.isNotEmpty;
     });
-  }
-
-  List<String> _getTagSuggestions(String query) {
-    // Common nail tags based on query
-    const tagDictionary = {
-      'gel': ['sơn gel', 'gel trong', 'gel màu'],
-      'đá': ['đính đá', 'phụ kiện đá', 'đá swarovski'],
-      'french': ['french tip', 'viền trắng', 'móng tay french'],
-      'cưới': ['cô dâu', 'cưới hỏi', 'trang trí cưới'],
-      'hàn': ['hàn quốc', 'style hàn', 'trend hàn'],
-      'nhật': ['nhật bản', 'style nhật', 'japanese'],
-    };
-
-    final suggestions = <String>[];
-    final lowerQuery = query.toLowerCase();
-
-    for (var entry in tagDictionary.entries) {
-      if (entry.key.contains(lowerQuery) || lowerQuery.contains(entry.key)) {
-        suggestions.addAll(entry.value);
-      }
-    }
-
-    return suggestions;
   }
 
   Stream<SearchResult> _performSearch(String query) async* {
@@ -126,18 +93,19 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     _saveSearch(query);
-
     yield SearchResult.loading();
 
     final lowerCaseQuery = query.toLowerCase();
     final searchTerms = lowerCaseQuery.split(' ').where((term) => term.isNotEmpty).toList();
 
     try {
-      // Tìm kiếm đa chiều
+      // Tìm kiếm nails
       final List<Nail> nails = await _searchNails(searchTerms);
+
+      // Tìm kiếm stores
       final List<Store> stores = await _searchStores(searchTerms);
 
-      // Sắp xếp kết quả theo độ liên quan
+      // Sắp xếp theo độ liên quan
       nails.sort((a, b) {
         final aScore = _calculateRelevanceScore(a, searchTerms, lowerCaseQuery);
         final bScore = _calculateRelevanceScore(b, searchTerms, lowerCaseQuery);
@@ -156,88 +124,103 @@ class _SearchScreenState extends State<SearchScreen> {
         query: query,
       );
     } catch (e) {
+      print('Search error: $e');
       yield SearchResult.error(e.toString());
     }
   }
 
   Future<List<Nail>> _searchNails(List<String> searchTerms) async {
-    final results = <Nail>{};
+    if (searchTerms.isEmpty) return [];
 
-    for (var term in searchTerms) {
-      if (term.isEmpty) continue;
+    final results = <String, Nail>{};
 
-      // Tìm theo tên (case-insensitive)
-      final nameQuery = await FirebaseFirestore.instance
-          .collection('nails')
-          .where('name_lowercase', isGreaterThanOrEqualTo: term)
-          .where('name_lowercase', isLessThanOrEqualTo: '$term\uf8ff')
-          .limit(20)
-          .get();
+    try {
+      // Tìm theo từng term
+      for (var term in searchTerms) {
+        // 1. Tìm theo name (prefix search)
+        final nameQuery = FirebaseFirestore.instance
+            .collection('nails')
+            .where('name_lowercase', isGreaterThanOrEqualTo: term)
+            .where('name_lowercase', isLessThanOrEqualTo: term + '\uf8ff')
+            .limit(20);
 
-      // Tìm theo tags
-      final tagsQuery = await FirebaseFirestore.instance
-          .collection('nails')
-          .where('tags', arrayContains: term)
-          .limit(20)
-          .get();
+        // 2. Tìm theo tags (exact match)
+        final tagsQuery = FirebaseFirestore.instance
+            .collection('nails')
+            .where('tags', arrayContains: term)
+            .limit(20);
 
-      // Tìm theo mô tả
-      final descriptionQuery = await FirebaseFirestore.instance
-          .collection('nails')
-          .where('description_lowercase', arrayContains: term)
-          .limit(20)
-          .get();
+        final [nameSnapshot, tagsSnapshot] = await Future.wait([
+          nameQuery.get(),
+          tagsQuery.get(),
+        ]);
 
-      // Tìm theo giá (nếu term là số)
-      if (_isNumeric(term)) {
-        final price = int.tryParse(term);
-        if (price != null) {
-          final priceQuery = await FirebaseFirestore.instance
-              .collection('nails')
-              .where('price', isGreaterThanOrEqualTo: price - 50000)
-              .where('price', isLessThanOrEqualTo: price + 50000)
-              .limit(10)
-              .get();
+        // Xử lý kết quả
+        for (var doc in nameSnapshot.docs) {
+          results[doc.id] = Nail.fromFirestore(doc);
+        }
 
-          for (var doc in priceQuery.docs) {
-            results.add(Nail.fromFirestore(doc));
-          }
+        for (var doc in tagsSnapshot.docs) {
+          results[doc.id] = Nail.fromFirestore(doc);
         }
       }
-
-      // Kết hợp kết quả
-      for (var doc in [...nameQuery.docs, ...tagsQuery.docs, ...descriptionQuery.docs]) {
-        results.add(Nail.fromFirestore(doc));
+    } catch (e) {
+      print('Error searching nails: $e');
+      if (e.toString().contains('index')) {
+        print('CẦN TẠO COMPOSITE INDEX: $e');
       }
     }
 
-    return results.toList();
+    return results.values.toList();
   }
 
   Future<List<Store>> _searchStores(List<String> searchTerms) async {
+    if (searchTerms.isEmpty) return [];
+
     final results = <Store>{};
 
-    for (var term in searchTerms) {
-      if (term.isEmpty) continue;
+    try {
+      for (var term in searchTerms) {
+        // Tìm theo tên cửa hàng
+        final nameQuery = FirebaseFirestore.instance
+            .collection('stores')
+            .where('name_lowercase', isGreaterThanOrEqualTo: term)
+            .where('name_lowercase', isLessThan: term + 'z')
+            .limit(10);
 
-      // Tìm theo tên cửa hàng
-      final nameQuery = await FirebaseFirestore.instance
-          .collection('stores')
-          .where('name_lowercase', isGreaterThanOrEqualTo: term)
-          .where('name_lowercase', isLessThanOrEqualTo: '$term\uf8ff')
-          .limit(10)
-          .get();
+        // Tìm theo địa chỉ (tìm kiếm substring trong string)
+        // Địa chỉ là string, không phải array, nên cần query khác
+        final addressQuery = FirebaseFirestore.instance
+            .collection('stores')
+            .where('address_lowercase', isGreaterThanOrEqualTo: term)
+            .where('address_lowercase', isLessThan: term + 'z')
+            .limit(10);
 
-      // Tìm theo địa chỉ
-      final addressQuery = await FirebaseFirestore.instance
-          .collection('stores')
-          .where('address_lowercase', arrayContains: term)
-          .limit(10)
-          .get();
+        final [nameSnapshot, addressSnapshot] = await Future.wait([
+          nameQuery.get(),
+          addressQuery.get(),
+        ]);
 
-      for (var doc in [...nameQuery.docs, ...addressQuery.docs]) {
-        results.add(Store.fromFirestore(doc));
+        // Thêm kết quả từ name query
+        for (var doc in nameSnapshot.docs) {
+          try {
+            results.add(Store.fromFirestore(doc));
+          } catch (e) {
+            print('Error parsing store from doc: $e');
+          }
+        }
+
+        // Thêm kết quả từ address query
+        for (var doc in addressSnapshot.docs) {
+          try {
+            results.add(Store.fromFirestore(doc));
+          } catch (e) {
+            print('Error parsing store from doc: $e');
+          }
+        }
       }
+    } catch (e) {
+      print('Error searching stores: $e');
     }
 
     return results.toList();
@@ -246,41 +229,47 @@ class _SearchScreenState extends State<SearchScreen> {
   int _calculateRelevanceScore(Nail nail, List<String> searchTerms, String fullQuery) {
     int score = 0;
 
-    // Kiểm tra tên
     final lowerName = nail.name.toLowerCase();
-    if (lowerName.contains(fullQuery)) {
-      score += 100; // Khớp chính xác toàn bộ query
-    } else {
-      for (var term in searchTerms) {
-        if (lowerName.contains(term)) {
-          score += 30;
-        }
-      }
-    }
-
-    // Kiểm tra tags
-    for (var tag in nail.tags) {
-      final lowerTag = tag.toLowerCase();
-      if (lowerTag.contains(fullQuery)) {
-        score += 80;
-      } else {
-        for (var term in searchTerms) {
-          if (lowerTag.contains(term)) {
-            score += 20;
-          }
-        }
-      }
-    }
-
-    // Kiểm tra mô tả
+    final lowerTags = nail.tags.map((tag) => tag.toLowerCase()).toList();
     final lowerDescription = nail.description.toLowerCase();
+
+    // Tên chứa toàn bộ query
+    if (lowerName.contains(fullQuery)) {
+      score += 100;
+    }
+
+    // Tên chứa từng term
+    for (var term in searchTerms) {
+      if (lowerName.contains(term)) {
+        score += 30;
+      }
+    }
+
+    // Tags chứa toàn bộ query
+    for (var tag in lowerTags) {
+      if (tag.contains(fullQuery)) {
+        score += 80;
+        break;
+      }
+    }
+
+    // Tags chứa từng term
+    for (var tag in lowerTags) {
+      for (var term in searchTerms) {
+        if (tag.contains(term)) {
+          score += 20;
+        }
+      }
+    }
+
+    // Mô tả chứa query
     if (lowerDescription.contains(fullQuery)) {
       score += 40;
-    } else {
-      for (var term in searchTerms) {
-        if (lowerDescription.contains(term)) {
-          score += 10;
-        }
+    }
+
+    for (var term in searchTerms) {
+      if (lowerDescription.contains(term)) {
+        score += 10;
       }
     }
 
@@ -301,25 +290,28 @@ class _SearchScreenState extends State<SearchScreen> {
 
     if (lowerName.contains(fullQuery)) {
       score += 100;
-    } else {
-      for (var term in searchTerms) {
-        if (lowerName.contains(term)) score += 40;
+    }
+
+    for (var term in searchTerms) {
+      if (lowerName.contains(term)) {
+        score += 40;
       }
     }
 
     if (lowerAddress.contains(fullQuery)) {
       score += 60;
-    } else {
-      for (var term in searchTerms) {
-        if (lowerAddress.contains(term)) score += 20;
+    }
+
+    for (var term in searchTerms) {
+      if (lowerAddress.contains(term)) {
+        score += 20;
       }
     }
 
-    return score;
-  }
+    // Ưu tiên rating cao
+    score += (store.rating * 10).toInt();
 
-  bool _isNumeric(String str) {
-    return double.tryParse(str) != null;
+    return score;
   }
 
   void _clearSearch() {
@@ -328,6 +320,7 @@ class _SearchScreenState extends State<SearchScreen> {
       _showSuggestions = false;
       _searchSuggestions = [];
     });
+    _searchSubject.add('');
   }
 
   void _selectSuggestion(String suggestion) {
@@ -345,7 +338,6 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() {
       _recentSearches.remove(search);
     });
-    // Update local storage
   }
 
   @override
@@ -388,7 +380,7 @@ class _SearchScreenState extends State<SearchScreen> {
               fontWeight: FontWeight.w500,
             ),
             decoration: InputDecoration(
-              hintText: 'Tìm kiếm mẫu nail, cửa hàng, tags...',
+              hintText: 'Tìm kiếm mẫu nail, cửa hàng...',
               hintStyle: TextStyle(fontSize: 16, color: Colors.grey.shade500),
               border: InputBorder.none,
               suffixIcon: _searchController.text.isNotEmpty
@@ -398,17 +390,8 @@ class _SearchScreenState extends State<SearchScreen> {
               )
                   : const Icon(Icons.search, color: Color(0xFF777E90)),
             ),
-            onTap: () {
-              if (_searchController.text.isNotEmpty) {
-                setState(() {
-                  _showSuggestions = true;
-                });
-              }
-            },
             onChanged: (value) {
-              setState(() {
-                _showSuggestions = value.isNotEmpty && _searchSuggestions.isNotEmpty;
-              });
+              _updateSuggestions(value);
             },
           ),
           if (_showSuggestions && _searchSuggestions.isNotEmpty)
@@ -470,7 +453,9 @@ class _SearchScreenState extends State<SearchScreen> {
             stream: _resultsStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
               }
 
               if (snapshot.hasError) {
@@ -484,16 +469,37 @@ class _SearchScreenState extends State<SearchScreen> {
                         'Đã có lỗi xảy ra',
                         style: TextStyle(color: Colors.grey.shade600),
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        snapshot.error.toString(),
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 );
               }
 
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              if (!snapshot.hasData) {
                 return _buildNoResults();
               }
 
               final result = snapshot.data!;
+
+              if (result.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (result.hasError) {
+                return Center(
+                  child: Text('Lỗi: ${result.errorMessage}'),
+                );
+              }
+
+              if (result.isEmpty) {
+                return _buildNoResults();
+              }
+
               return _buildResults(result);
             },
           ),
@@ -621,7 +627,6 @@ class _SearchScreenState extends State<SearchScreen> {
           const SizedBox(height: 12),
           _buildTipItem('🔍', 'Tìm theo tên mẫu nail, cửa hàng'),
           _buildTipItem('🏷️', 'Tìm theo tags: "gel", "đính đá", "french"'),
-          _buildTipItem('💰', 'Tìm theo giá: "200k", "dưới 300k"'),
           _buildTipItem('⭐', 'Tìm mẫu nổi bật: "Best Choice", "Trending"'),
         ],
       ),
@@ -630,25 +635,25 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildTipItem(String emoji, String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 16)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade700,
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade700,
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
     );
-  }
+    }
 
   Widget _buildNoResults() {
     return Center(
@@ -763,16 +768,12 @@ class _SearchScreenState extends State<SearchScreen> {
             'name': store.name,
             'address': store.address,
             'img_url': store.imgUrl,
-            // Add additional data if available
             'rating': store.rating,
             'review_count': store.reviewCount,
             'distance': store.distance,
           },
           isSearchResult: true,
-          onBookmarkChanged: () {
-            // Optional: refresh search results if needed
-            // _refreshSearch();
-          },
+          onBookmarkChanged: () {},
         );
       },
     );
