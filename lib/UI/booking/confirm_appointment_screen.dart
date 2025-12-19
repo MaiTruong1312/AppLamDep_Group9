@@ -2,9 +2,21 @@
 
 import 'package:flutter/material.dart';
 import 'package:applamdep/UI/booking/credit_payment_screen.dart';
+import 'package:applamdep/UI/booking/booking_screen.dart';
 
 class ConfirmAppointmentScreen extends StatefulWidget {
-  const ConfirmAppointmentScreen({super.key});
+  final List<ServiceItem> selectedServices;  // Danh sách dịch vụ đã chọn (có quantity > 0)
+  final double totalPrice;
+  final DateTime selectedDate;
+  final String selectedTime;
+  final String note;
+  const ConfirmAppointmentScreen({super.key,
+    required this.selectedServices,
+    required this.totalPrice,
+    required this.selectedDate,
+    required this.selectedTime,
+    required this.note,
+  });
 
   @override
   State<ConfirmAppointmentScreen> createState() => _ConfirmAppointmentScreenState();

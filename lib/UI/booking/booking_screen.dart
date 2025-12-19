@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:applamdep/UI/booking/your_appointment_screen.dart';
 import 'package:applamdep/UI/booking/confirm_appointment_screen.dart';
+import 'package:applamdep/UI/profile/PaymentMethod.dart';
+import 'package:applamdep/UI/booking/voucher_screen.dart';
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
@@ -17,15 +19,7 @@ class _BookingScreenState extends State<BookingScreen> {
   String _selectedTime = '';
 
   final List<String> morningTimes = ['09:00', '10:00', '11:00', '12:00'];
-  final List<String> afternoonTimes = [
-    '13:00',
-    '14:00',
-    '15:00',
-    '16:00',
-    '17:00',
-    '18:00',
-    '19:00'
-  ];
+  final List<String> afternoonTimes = ['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
 
   List<ServiceItem> services = [
     ServiceItem(
@@ -76,6 +70,11 @@ class _BookingScreenState extends State<BookingScreen> {
   int get totalServices {
     return services.fold(0, (sum, item) => sum + item.quantity);
   }
+  // Chỉ lấy dịch vụ có quantity > 0 để truyền sang confirm
+  List<ServiceItem> get selectedServices {
+    return services.where((item) => item.quantity > 0).toList();
+  }
+  bool get canContinue => totalServices > 0 && _selectedDay != null && _selectedTime.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +91,7 @@ class _BookingScreenState extends State<BookingScreen> {
           'Booking an Appointment',
           style: TextStyle(
             color: Colors.black87,
-            fontSize: 20,
+            fontSize: 28,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -196,27 +195,20 @@ class _BookingScreenState extends State<BookingScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text('Morning',
-                    style:
-                    TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const Text('Morning', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
-                  children:
-                  morningTimes.map((time) => _buildTimeChip(time)).toList(),
+                  children: morningTimes.map((time) => _buildTimeChip(time)).toList(),
                 ),
                 const SizedBox(height: 20),
-                const Text('Afternoon',
-                    style:
-                    TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const Text('Afternoon', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
-                  children: afternoonTimes
-                      .map((time) => _buildTimeChip(time))
-                      .toList(),
+                  children: afternoonTimes.map((time) => _buildTimeChip(time)).toList(),
                 ),
                 const SizedBox(height: 16),
                 const Row(
@@ -228,9 +220,7 @@ class _BookingScreenState extends State<BookingScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                const Text('Select service',
-                    style:
-                    TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const Text('Select service', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 12),
                 ListView.builder(
                   shrinkWrap: true,
@@ -258,19 +248,32 @@ class _BookingScreenState extends State<BookingScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: const Center(
-                      child: Text(
-                        '+ Add service',
-                        style: TextStyle(
-                            color: Color(0xFFF25278),
-                            fontWeight: FontWeight.w600),
+                      child: Text('+ Add service', style: TextStyle(color: Color(0xFFF25278), fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
-                _buildSectionRow('Voucher', Icons.local_offer_outlined),
-                const SizedBox(height: 16),
-                _buildSectionRow('Payment', Icons.payment, subtitle: 'Visa'),
+                // Voucher - nhấn vào chuyển trang
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const VoucherScreen()),
+                    );
+                  },
+                  child: _buildSectionRow('Voucher', Icons.local_offer_outlined),
+                ),
+                const SizedBox(height: 24),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PaymentMethodScreen()),
+                    );
+                  },
+                  child: _buildSectionRow('Payment', Icons.payment, subtitle: 'Visa'),
+                ),
                 const SizedBox(height: 24),
                 const Text('Note',
                     style:
@@ -284,9 +287,10 @@ class _BookingScreenState extends State<BookingScreen> {
                         borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.all(16),
                   ),
-                  maxLines: 3,
+                  maxLines: 5,
                 ),
                 const SizedBox(height: 24),
+                //TOTAL
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -320,7 +324,13 @@ class _BookingScreenState extends State<BookingScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const ConfirmAppointmentScreen(),
+                        builder: (context) => ConfirmAppointmentScreen(
+                          selectedServices: selectedServices,
+                          totalPrice: totalPrice,
+                          selectedDate: _selectedDay!,
+                          selectedTime: _selectedTime,
+                          note: note,
+                        ),
                       ),
                     );
                   },
