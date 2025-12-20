@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
+
 class NailDetailScreen extends StatefulWidget {
   final Nail nail;
 
@@ -342,12 +343,15 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
         if (!snapshot.hasData) {
           return Center(child: CircularProgressIndicator());
         }
+        // 346: Chuyển sang dùng Store Model vì đang lấy dữ liệu từ collection 'stores'
         final store = Store.fromFirestore(snapshot.data!);
 
         ImageProvider imageProvider;
+// Kiểm tra nếu imgUrl (đúng tên biến trong model Store) bắt đầu bằng 'http'
         if (store.imgUrl.startsWith('http')) {
           imageProvider = NetworkImage(store.imgUrl);
         } else {
+          // Nếu là đường dẫn assets/images/...
           imageProvider = AssetImage(store.imgUrl);
         }
 
@@ -366,9 +370,9 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   SizedBox(height: 4),
-                  Text(store.address,
-                      style: TextStyle(color: Colors.grey[600]),
-                      overflow: TextOverflow.ellipsis),
+                  // Text(store.address,
+                  //     style: TextStyle(color: Colors.grey[600]),
+                  //     overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),

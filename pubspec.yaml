@@ -42,6 +42,7 @@ dependencies:
 
   # --- KHÁC ---
   mediapipe_genai: ^0.0.1
+  flutter_svg: ^2.2.3
 
 dev_dependencies:
   flutter_test:
@@ -50,6 +51,11 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_native_splash: ^2.4.0
+  provider: ^6.1.1  # Cho StoreProvider
+  geolocator: ^10.1.0  # Cho location trong StoreService
+  cached_network_image: ^3.3.1  # Cho load image trong UI
+  google_maps_flutter: ^2.5.0
+
 
 flutter:
   uses-material-design: true
@@ -58,6 +64,7 @@ flutter:
     - assets/images/
     - assets/hand_landmarker/
     - assets/models/hand_landmarker.task
+    - assets/icons/
 
 flutter_native_splash:
   color: "#F5F5F5"

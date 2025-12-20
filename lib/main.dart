@@ -1,6 +1,7 @@
 import 'package:applamdep/UI/main_layout.dart';
 import 'package:applamdep/welcome/screen1.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'welcome/welcome_flow.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -9,6 +10,7 @@ import 'firebase_options.dart';
 import 'UI/ar/home.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_typography.dart';
+import 'providers/store_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +21,14 @@ void main() async {
   final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
 
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  runApp(MyApp(isLoggedIn: isLoggedIn)); // Pass the status
+  runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => StoreProvider()),
+        ],
+        child: MyApp(isLoggedIn: isLoggedIn),
+      ), // Pass the status
+  );
 }
 
 class MyApp extends StatelessWidget {
