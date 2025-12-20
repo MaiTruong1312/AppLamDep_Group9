@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:applamdep/services/booking_cart_service.dart';
 import 'package:applamdep/models/booking_cart_model.dart';
 import 'package:applamdep/models/nail_model.dart';
+import 'package:applamdep/models/store_model.dart';
 import 'package:applamdep/UI/detail/nail_detail_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:applamdep/UI/booking/booking_screen.dart';
 
 class BookingCartScreen extends StatefulWidget {
   const BookingCartScreen({super.key});
@@ -15,8 +18,8 @@ class BookingCartScreen extends StatefulWidget {
 class _BookingCartScreenState extends State<BookingCartScreen> {
   final BookingCartService _bookingCartService = BookingCartService();
   final NumberFormat _currencyFormat = NumberFormat.currency(
-    locale: 'vi_VN',
-    symbol: '₫',
+    locale: 'en_US',
+    symbol: '\$',
     decimalDigits: 0,
   );
 
@@ -198,16 +201,42 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Hình ảnh
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  image: DecorationImage(
-                    image: NetworkImage(item.nailImage),
-                    fit: BoxFit.cover,
-                  ),
+              // Hình ảnh (Đã sửa)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  item.nailImage,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    // Widget hiển thị khi có lỗi
+                    return Container(
+                      width: 80,
+                      height: 80,
+                      color: Colors.grey[200],
+                      child: const Icon(
+                        Icons.broken_image,
+                        color: Colors.grey,
+                        size: 40,
+                      ),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    // Widget hiển thị trong lúc tải ảnh
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      width: 80,
+                      height: 80,
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF25278)),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 12),
@@ -544,11 +573,77 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
     }
   }
 
-  void _proceedToBookingDetails(BuildContext context) {
-    Navigator.pushNamed(context, '/booking_details').then((_) {
+  void _proceedToBookingDetails(BuildContext context) async {
+    // Lấy danh sách items hiện tại
+    final items = await _bookingCartService.getBookingCartItems().first;
+
+    if (items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng chọn ít nhất một mẫu nail'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Kiểm tra xem tất cả items có cùng store không
+    final firstStoreId = items.first.storeId;
+    final allSameStore = items.every((item) => item.storeId == firstStoreId);
+
+    if (!allSameStore) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Thông báo'),
+          content: const Text('Các mẫu nail được chọn từ nhiều cửa hàng khác nhau. Vui lòng đặt lịch từng cửa hàng riêng biệt.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Đã hiểu'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    final store = Store(
+      id: firstStoreId,
+      name: items.first.storeName,
+      address: '',
+      phone: '',
+      isOpen: true,
+      imgUrl: '',
+      location: const GeoPoint(0, 0),
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookingScreen(
+          selectedNail: _convertToNail(items.first),
+          selectedStore: store,
+          bookingCartItems: items,
+        ),
+      ),
+    ).then((_) {
       if (mounted) {
         setState(() {});
       }
     });
+  }
+
+  // Helper method để convert BookingCartItem sang Nail
+  Nail _convertToNail(BookingCartItem item) {
+    return Nail(
+      id: item.nailId,
+      name: item.nailName,
+      imgUrl: item.nailImage,
+      price: item.price.toInt(),
+      storeId: item.storeId,
+      likes: 0,
+      isBestChoice: false,
+      description: '',
+      tags: [],
+    );
   }
 }

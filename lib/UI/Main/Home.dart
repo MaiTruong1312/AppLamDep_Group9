@@ -902,6 +902,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: List.generate(products.length, (index) {
                     final nail = Nail.fromFirestore(products[index]);
+                    // final store = storesMap[nail.storeId];
                     final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
                       CurvedAnimation(
                         parent: _listAnimationController,

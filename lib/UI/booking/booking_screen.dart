@@ -10,14 +10,16 @@ import 'package:applamdep/models/user_model.dart';
 import 'package:applamdep/UI/booking/your_appointment_screen.dart';
 import 'package:applamdep/UI/booking/confirm_appointment_screen.dart';
 import 'package:applamdep/UI/booking/main_booking_screen.dart';
+import 'package:applamdep/models/booking_cart_model.dart';
 class BookingScreen extends StatefulWidget {
   final Nail selectedNail;
   final Store? selectedStore;
-
+  final List<BookingCartItem>? bookingCartItems;
   const BookingScreen({
     super.key,
     required this.selectedNail,
     this.selectedStore,
+    this.bookingCartItems,
   });
 
   @override

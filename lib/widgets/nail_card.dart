@@ -11,7 +11,7 @@ import '../ui/detail/nail_detail_screen.dart';
 class NailCard extends StatefulWidget {
   final Nail nail;
   final Store? store;
-  final Function()? onAddedToBookingCart; // Đổi tên callback
+  final Function()? onAddedToBookingCart;
 
   const NailCard({
     Key? key,
@@ -25,9 +25,58 @@ class NailCard extends StatefulWidget {
 }
 
 class _NailCardState extends State<NailCard> {
-  final BookingCartService _bookingCartService = BookingCartService(); // Đổi service
+  final BookingCartService _bookingCartService = BookingCartService();
   bool _isAddingToCart = false;
+  Store? _loadedStore; // Store được load độc lập
+  bool _isLoadingStore = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // Nếu không có store được truyền từ parent, tự load
+    if (widget.store == null) {
+      _loadStore();
+    }
+  }
+
+  Future<void> _loadStore() async {
+    if (widget.nail.storeId.isEmpty) return;
+
+    setState(() {
+      _isLoadingStore = true;
+    });
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('stores')
+          .doc(widget.nail.storeId)
+          .get();
+
+      if (doc.exists) {
+        final store = Store.fromFirestore(doc);
+        if (mounted) {
+          setState(() {
+            _loadedStore = store;
+          });
+        }
+      } else {
+        print('DEBUG: Store ${widget.nail.storeId} not found');
+      }
+    } catch (e) {
+      print('DEBUG: Error loading store: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingStore = false;
+        });
+      }
+    }
+  }
+
+  // Sử dụng store từ widget hoặc từ _loadedStore
+  Store? get _effectiveStore => widget.store ?? _loadedStore;
+
+  // Phần còn lại của các phương thức giữ nguyên...
   Future<void> _toggleLike() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -96,7 +145,6 @@ class _NailCardState extends State<NailCard> {
     });
 
     try {
-      // Kiểm tra xem mẫu nail đã có trong giỏ đặt lịch chưa
       final cartSnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -115,10 +163,9 @@ class _NailCardState extends State<NailCard> {
         nailImage: widget.nail.imgUrl,
         price: widget.nail.price.toDouble(),
         storeId: widget.nail.storeId,
-        storeName: widget.store?.name ?? 'Chưa xác định',
+        storeName: _effectiveStore?.name ?? 'Chưa xác định', // Sử dụng effectiveStore
       );
 
-      // Gọi callback nếu có
       if (widget.onAddedToBookingCart != null) {
         widget.onAddedToBookingCart!();
       }
@@ -129,7 +176,6 @@ class _NailCardState extends State<NailCard> {
         action: SnackBarAction(
           label: 'Xem',
           onPressed: () {
-            // Điều hướng đến màn hình danh sách đặt lịch
             Navigator.pushNamed(context, '/booking_cart');
           },
         ),
@@ -162,8 +208,8 @@ class _NailCardState extends State<NailCard> {
   Widget build(BuildContext context) {
     final User? user = FirebaseAuth.instance.currentUser;
     final currencyFormat = NumberFormat.currency(
-      locale: 'vi_VN',
-      symbol: '₫',
+      locale: 'en_US',
+      symbol: '\$',
       decimalDigits: 0,
     );
 
@@ -187,7 +233,7 @@ class _NailCardState extends State<NailCard> {
           MaterialPageRoute(
             builder: (context) => NailDetailScreen(
               nail: widget.nail,
-              store: widget.store,
+              store: _effectiveStore, // Truyền effectiveStore
             ),
           ),
         );
@@ -327,7 +373,7 @@ class _NailCardState extends State<NailCard> {
                           ),
                         )
                             : const Icon(
-                          Icons.add, // Icon cho đặt lịch
+                          Icons.add,
                           size: 20,
                           color: Colors.white,
                         ),
@@ -394,16 +440,43 @@ class _NailCardState extends State<NailCard> {
 
                   const SizedBox(height: 4),
 
-                  // Tên salon
-                  Text(
-                    widget.store?.name ?? 'Salon chưa xác định',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
+                  // Tên salon với loading state
+                  if (_isLoadingStore)
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.grey[400],
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Đang tải...',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Text(
+                      _effectiveStore?.name ??
+                          (widget.nail.storeId.isEmpty
+                              ? 'Không có salon'
+                              : 'Salon ID: ${widget.nail.storeId}'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _effectiveStore != null
+                            ? Colors.grey[600]
+                            : Colors.orange[600],
+                      ),
                     ),
-                  ),
 
                   const SizedBox(height: 8),
 
