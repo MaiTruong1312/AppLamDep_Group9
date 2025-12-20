@@ -1,8 +1,8 @@
 import 'package:applamdep/UI/main_layout.dart';
 import 'package:applamdep/welcome/screen1.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'welcome/welcome_flow.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -41,8 +41,28 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'App Làm Đẹp',
       debugShowCheckedModeBanner: false,
+
       // =====================================================================
-      // BẮT ĐẦU CẤU HÌNH THEME DATA
+      // CẤU HÌNH NAVIGATION - CHỈ CHỌN 1 TRONG 2 CÁCH DƯỚI ĐÂY:
+      // =====================================================================
+
+      // CÁCH 1: Dùng initialRoute + routes (cho navigation phức tạp)
+      // initialRoute: isLoggedIn ? '/' : '/welcome',
+      // routes: {
+      //   '/': (context) => const MainLayout(initialTabIndex: 0),
+      //   '/main-layout': (context) => const MainLayout(initialTabIndex: 0),
+      //   '/main-layout/collection': (context) => const MainLayout(initialTabIndex: 1),
+      //   '/main-layout/booking': (context) => const MainLayout(initialTabIndex: 2),
+      //   '/main-layout/discover': (context) => const MainLayout(initialTabIndex: 3),
+      //   '/main-layout/profile': (context) => const MainLayout(initialTabIndex: 4),
+      //   '/welcome': (context) => const SplashScreen1(),
+      // },
+
+      // CÁCH 2: Dùng home đơn giản (khuyên dùng nếu không cần route name)
+      home: isLoggedIn ? const MainLayout(initialTabIndex: 0) : const SplashScreen1(),
+
+      // =====================================================================
+      // CẤU HÌNH THEME DATA
       // =====================================================================
       theme: ThemeData(
         useMaterial3: true,
@@ -56,43 +76,43 @@ class MyApp extends StatelessWidget {
           onSecondary: AppColors.white,
           error: AppColors.error500,
           onError: AppColors.white,
-          surface: AppColors.white, // Màu nền của Card, Dialog
-          background: AppColors.whiteSmoke, // Màu nền Scaffold
+          surface: AppColors.white,
+          background: AppColors.whiteSmoke,
           onBackground: AppColors.darkToneInk,
 
           primaryContainer: AppColors.primary100,
           onSurface: AppColors.neutral900,
         ),
 
-        // 2. Cấu hình Text Theme (Kiểu chữ) - Ánh xạ từ AppTypography
+        // 2. Cấu hình Text Theme (Kiểu chữ)
         textTheme: TextTheme(
           // Display
-          displayLarge: AppTypography.headline3XL, // 32px
-          displayMedium: AppTypography.headline2XL, // 28px
-          displaySmall: AppTypography.headlineXL, // 24px
+          displayLarge: AppTypography.headline3XL,
+          displayMedium: AppTypography.headline2XL,
+          displaySmall: AppTypography.headlineXL,
 
-          // Headline (Tiêu đề nội dung)
-          headlineLarge: AppTypography.headlineLG, // 20px
-          headlineMedium: AppTypography.headlineMD, // 18px
-          headlineSmall: AppTypography.headlineSM, // 16px
+          // Headline
+          headlineLarge: AppTypography.headlineLG,
+          headlineMedium: AppTypography.headlineMD,
+          headlineSmall: AppTypography.headlineSM,
 
-          // Title (Tiêu đề nhỏ, card, app bar)
-          titleLarge: AppTypography.textXL, // 20px
-          titleMedium: AppTypography.textLG, // 18px
-          titleSmall: AppTypography.headlineXS, // 14px (SemiBold)
+          // Title
+          titleLarge: AppTypography.textXL,
+          titleMedium: AppTypography.textLG,
+          titleSmall: AppTypography.headlineXS,
 
-          // Body (Nội dung chính)
-          bodyLarge: AppTypography.textMD, // 16px
-          bodyMedium: AppTypography.textSM, // 14px
-          bodySmall: AppTypography.textXS, // 12px
+          // Body
+          bodyLarge: AppTypography.textMD,
+          bodyMedium: AppTypography.textSM,
+          bodySmall: AppTypography.textXS,
 
-          // Label (Nhãn, Button, chú thích)
-          labelLarge: AppTypography.buttonLG, // Button LG (16px) - Dùng cho Text trong nút
-          labelMedium: AppTypography.labelMD, // Label MD (14px)
-          labelSmall: AppTypography.labelSM, // Label SM (12px)
+          // Label
+          labelLarge: AppTypography.buttonLG,
+          labelMedium: AppTypography.labelMD,
+          labelSmall: AppTypography.labelSM,
         ),
 
-        // 3. Cấu hình Scaffold (Nền màn hình)
+        // 3. Cấu hình Scaffold
         scaffoldBackgroundColor: AppColors.whiteSmoke,
 
         // 4. Cấu hình AppBar
@@ -123,7 +143,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        // 6. Cấu hình Card (Sử dụng CardThemeData để tránh lỗi)
+        // 6. Cấu hình Card
         cardTheme: CardThemeData(
           color: AppColors.white,
           elevation: 0,
@@ -132,8 +152,8 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        // 7. Cấu hình Input Decoration (Trường nhập liệu Text Field)
-        inputDecorationTheme: InputDecorationThemeData( // Sử dụng InputDecorationThemeData
+        // 7. Cấu hình Input Decoration
+        inputDecorationTheme: InputDecorationThemeData(
           filled: true,
           fillColor: AppColors.white5,
           hintStyle: AppTypography.textMD.copyWith(color: AppColors.neutral500),
@@ -157,9 +177,6 @@ class MyApp extends StatelessWidget {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
       ),
-      // =====================================================================
-      // Decide home screen based on login status
-      home: isLoggedIn ? const MainLayout() : const SplashScreen1(),
     );
   }
 }

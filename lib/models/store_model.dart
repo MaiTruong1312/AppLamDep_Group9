@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'review_model.dart';
 
 class Store {
   final String id;

@@ -3,7 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:applamdep/UI/main_layout.dart';
 import 'package:applamdep/UI/Login/forgot_password_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'dart:io';
+import 'package:local_auth/local_auth.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 // Import AuthService của bạn (Cần đảm bảo đường dẫn này là chính xác)
 import 'package:applamdep/services/auth_service.dart';
 
@@ -15,6 +19,8 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
+  final LocalAuthentication auth = LocalAuthentication();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   // Key để lưu trữ email
   static const String _rememberMeKey = 'rememberedEmail';
 
@@ -56,58 +62,137 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   // --- LOGIC ĐĂNG NHẬP BẰNG EMAIL/MẬT KHẨU ---
-  void _signIn() async {
+  Future<void> _signIn() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
+    // 1. Kiểm tra đầu vào
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập email và mật khẩu.')),
-      );
+      _showErrorSnackBar('Please enter your email and password.');
       return;
     }
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      // 2. Thực hiện đăng nhập Firebase Auth
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('isLoggedIn', true); // <-- LƯU TRẠNG THÁI
-      if (_rememberMe) {
-        await prefs.setString(_rememberMeKey, email);
-      } else {
-        await prefs.remove(_rememberMeKey);
-      }
+      final User? user = userCredential.user;
 
-      // Điều hướng đến màn hình chính
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const MainLayout()),
-              (Route<dynamic> route) => false,
-        );
+      if (user != null) {
+        // 3. Ghi lại thông tin thiết bị để phục vụ "Device Management"
+        await _recordDeviceSession(user);
+
+        // 4. Lưu trạng thái đăng nhập vào SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isLoggedIn', true);
+
+        if (_rememberMe) {
+          await prefs.setString(_rememberMeKey, email);
+        } else {
+          await prefs.remove(_rememberMeKey);
+        }
+
+        // 5. Điều hướng đến MainLayout
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const MainLayout()),
+                (Route<dynamic> route) => false,
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
-      String message = 'Đã xảy ra lỗi. Vui lòng thử lại.';
+      // 6. Xử lý các lỗi cụ thể từ Firebase
+      String message = 'An error occurred. Please try again.';
       if (e.code == 'user-not-found' ||
           e.code == 'wrong-password' ||
           e.code == 'invalid-credential') {
-        message = 'Email hoặc mật khẩu không chính xác.';
+        message = 'Incorrect email or password.';
       } else if (e.code == 'invalid-email') {
-        message = 'Địa chỉ email không hợp lệ.';
+        message = 'Invalid email address.';
+      } else if (e.code == 'user-disabled') {
+        message = 'This account has been disabled.';
       }
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+      _showErrorSnackBar(message);
+    } catch (e) {
+      // 7. Các lỗi không mong muốn khác
+      _showErrorSnackBar('An unexpected error occurred: $e');
+    }
+  }
+  Future<void> _authenticateWithBiometrics() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool isBiometricEnabled = prefs.getBool('use_biometric') ?? false;
+
+    if (!isBiometricEnabled) {
+      _showErrorSnackBar('Biometric login is not enabled. Please enable it in Settings.');
+      return;
+    }
+
+    try {
+      bool didAuthenticate = await auth.authenticate(
+        localizedReason: 'Please authenticate to sign in',
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+          stickyAuth: true,
+        ),
+      );
+
+      if (didAuthenticate) {
+        String? savedEmail = await _secureStorage.read(key: 'user_email');
+        String? savedPassword = await _secureStorage.read(key: 'user_password');
+
+        if (savedEmail != null && savedPassword != null) {
+          _emailController.text = savedEmail;
+          _passwordController.text = savedPassword;
+          _signIn(); // Gọi hàm đăng nhập
+        } else {
+          _showErrorSnackBar('No saved credentials found. Please sign in manually once.');
+        }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Đã xảy ra lỗi không mong muốn: $e')),
-        );
+      _showErrorSnackBar('Biometric authentication failed: $e');
+    }
+  }
+  Future<void> _recordDeviceSession(User user) async {
+    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    String deviceName = "Unknown Device";
+    String os = Platform.isAndroid ? "Android" : "iOS";
+
+    try {
+      if (Platform.isAndroid) {
+        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+        deviceName = "${androidInfo.manufacturer} ${androidInfo.model}";
+      } else if (Platform.isIOS) {
+        IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+        deviceName = iosInfo.name;
       }
+
+      // Lưu vào Firestore: users -> {uid} -> sessions -> {tên_máy}
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('sessions')
+          .doc(deviceName.replaceAll(' ', '_')) // Dùng tên máy làm ID
+          .set({
+        'deviceName': deviceName,
+        'os': os,
+        'lastLogin': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true)); // Sử dụng merge để chỉ cập nhật thời gian nếu thiết bị đã tồn tại
+    } catch (e) {
+      debugPrint("Error recording device: $e");
+    }
+  }
+  void _showErrorSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
   // --- KẾT THÚC LOGIC ĐĂNG NHẬP EMAIL ---
@@ -472,29 +557,40 @@ class _SignInScreenState extends State<SignInScreen> {
   Widget _buildSignInButton() {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      decoration: const BoxDecoration(
-        color: backgroundColor,
-      ),
-      child: ElevatedButton(
-        onPressed: _signIn,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: buttonPink,
-          padding: const EdgeInsets.all(18),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(40),
+      decoration: const BoxDecoration(color: backgroundColor),
+      child: Row(
+        children: [
+          // Nút Sign In chính
+          Expanded(
+            child: ElevatedButton(
+              onPressed: _signIn,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: buttonPink,
+                padding: const EdgeInsets.all(18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+              ),
+              child: const Text(
+                'Sign in',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
-        ),
-        child: const Text(
-          'Sign in',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w600,
-            height: 1.25,
+          const SizedBox(width: 12),
+          // Nút Biometric ID
+          InkWell(
+            onTap: _authenticateWithBiometrics,
+            borderRadius: BorderRadius.circular(50),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(color: textFieldBorder),
+              ),
+              child: const Icon(Icons.fingerprint, color: primaryPink, size: 28),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

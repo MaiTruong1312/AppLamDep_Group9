@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Review {
   final String id;
+  final String nailId;
   final String userId;
   final double rating;
   final String comment;
@@ -10,6 +11,7 @@ class Review {
 
   Review({
     required this.id,
+    required this.nailId,
     required this.userId,
     required this.rating,
     required this.comment,
@@ -21,6 +23,7 @@ class Review {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Review(
       id: doc.id,
+      nailId: data['nail_id'] ?? '',
       userId: data['user_id'] ?? '',
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
       comment: data['comment'] ?? '',
