@@ -11,7 +11,6 @@ class StoreService {
       QuerySnapshot query = await _firestore.collection('stores').get();
       List<Store> stores = query.docs.map((doc) => Store.fromFirestore(doc)).toList();
       if (userPosition != null) {
-        // Sort by distance
         stores.sort((a, b) {
           double distA = _calculateDistance(userPosition, a.location);
           double distB = _calculateDistance(userPosition, b.location);

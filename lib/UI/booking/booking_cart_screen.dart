@@ -612,7 +612,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
       name: items.first.storeName,
       address: '',
       phone: '',
-      isOpen: true,
+      // isOpen: true,
       imgUrl: '',
       location: const GeoPoint(0, 0),
     );

@@ -460,7 +460,7 @@ class _StoreDetailsState extends State<StoreDetails> {
 
           // 2. THÔNG TIN LIÊN HỆ
           _buildContactInfoTile(Icons.location_on, store.address, "Address"),
-          _buildContactInfoTile(Icons.phone, store.hotline, "Hotline"),
+          _buildContactInfoTile(Icons.phone, store.phone, "Phone"),
           _buildContactInfoTile(Icons.email, store.email, "Email"),
           _buildContactInfoTile(Icons.language, store.website, "Website"),
 
@@ -865,7 +865,7 @@ class _StoreDetailsState extends State<StoreDetails> {
     return Column(
       children: [
         _buildContactTile(Icons.location_on, store.address, "Address"),
-        _buildContactTile(Icons.phone, store.hotline, "Hotline"),
+        _buildContactTile(Icons.phone, store.phone, "Phone"),
         _buildContactTile(Icons.email, store.email, "Email"),
         _buildContactTile(Icons.language, store.website, "Website"),
       ],

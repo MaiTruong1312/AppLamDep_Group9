@@ -17,7 +17,7 @@ class Store {
   final int totalNails;
   final int followerCount;
   final int viewCount;
-  final String hotline; // Khớp với lỗi dòng 353
+  final String phone;
   final String email;
   final String website;
   final String description;
@@ -28,7 +28,7 @@ class Store {
     this.location, this.openingHours = const {}, this.rating = 0.0, this.reviewsCount = 0,
     this.services = const [], this.flashsales = const [], this.portfolio = const [],
     this.reviews = const [], this.totalNails = 0, this.followerCount = 0,
-    this.viewCount = 0, this.hotline = '', this.email = '', this.website = '', this.description = '', this.distance = 0.0,
+    this.viewCount = 0, this.phone = '', this.email = '', this.website = '', this.description = '', this.distance = 0.0,
   });
 
   factory Store.fromFirestore(DocumentSnapshot doc) {
@@ -46,7 +46,7 @@ class Store {
       followerCount: data['follower_count'] as int? ?? 0,
       viewCount: data['view_count'] as int? ?? 0,
       portfolio: List<String>.from(data['portfolio'] ?? []),
-      hotline: data['hotline'] ?? data['phone'] ?? '', // Xử lý cả 2 key
+      phone: data['hotline'] ?? data['phone'] ?? '', // Xử lý cả 2 key
       email: data['email'] ?? '',
       website: data['website'] ?? '',
       description: data['description'] ?? '',
@@ -65,7 +65,7 @@ class Store {
 
 class Flashsale {
   final String title;
-  final String imageUrl; // Phải có trường này để sửa lỗi dòng 207
+  final String imageUrl;
   final double discount;
 
   Flashsale({required this.title, required this.imageUrl, required this.discount});

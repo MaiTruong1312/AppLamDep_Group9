@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'dart:math' as math;
-
+import 'dart:ui' as ui;
+import 'dart:typed_data';
+import 'dart:io';
+import 'package:flutter/rendering.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hand_landmarker/hand_landmarker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:gal/gal.dart';
+import 'package:path_provider/path_provider.dart';
 
-/// Các tab menu bên dưới
-enum BottomTab { none, colors, patterns, styles }
+enum BottomTab { none, designs, adjust }
 
 class ArNailTryOnPage extends StatefulWidget {
   const ArNailTryOnPage({super.key});
@@ -25,66 +30,47 @@ class _ArNailTryOnPageState extends State<ArNailTryOnPage>
 
   bool _isInitialized = false;
   bool _isDetecting = false;
+  bool _isCapturing = false; // Thêm biến trạng thái chụp ảnh
 
   // UI state
   bool showSkeleton = true;
   late AnimationController _pulseAnim;
   BottomTab activeTab = BottomTab.none;
 
-  // Nail state
-  Color selectedColor = const Color(0xFFE91E63); // Pink default
-  int selectedPattern = 0; // 0: Solid
-  int selectedStyle = 2; // 2: Oval default
+  // Chọn mẫu nail
+  int selectedDesign = 0;
 
-  // Dữ liệu cho UI Tabs
-  final List<Color> colorPalette = [
-    Colors.red,
-    Colors.pink,
-    Colors.purple,
-    Colors.deepPurple,
-    Colors.indigo,
-    Colors.blue,
-    Colors.lightBlue,
-    Colors.cyan,
-    Colors.teal,
-    Colors.green,
-    Colors.lightGreen,
-    Colors.lime,
-    Colors.yellow,
-    Colors.amber,
-    Colors.orange,
-    Colors.deepOrange,
-    Colors.brown,
-    Colors.grey,
-    Colors.blueGrey,
-    Colors.black,
-    Colors.white,
+  // DANH SÁCH MẪU NAIL
+  final List<String> nailDesigns = [
+    'assets/images/nail_designs/des1.png',
+    'assets/images/nail_designs/des2.png',
+    'assets/images/nail_designs/des3.png',
+    'assets/images/nail_designs/des4.png',
+    'assets/images/nail_designs/des5.png',
+    'assets/images/nail_designs/des6.png',
+    'assets/images/nail_designs/des7.png',
+    'assets/images/nail_designs/des8.png',
+    'assets/images/nail_designs/des9.png',
+    'assets/images/nail_designs/des10.png',
   ];
 
-  final List<String> patternNames = [
-    "Solid",
-    "Glitter",
-    "Gradient",
-    "French",
-    "Ombre",
-  ];
+  // CACHE để lưu ảnh đã tải
+  final Map<int, ui.Image> _cachedImages = {};
+  bool _isPreloading = false;
 
-  final List<IconData> patternIcons = [
-    Icons.circle,
-    Icons.star,
-    Icons.gradient,
-    Icons.brush,
-    Icons.blur_on,
-  ];
+  // ================== THÊM CÁC BIẾN TÙY CHỈNH ==================
+  double nailSize = 1.0;
+  Offset nailOffset = Offset.zero;
+  double nailRotation = 0.0;
+  double nailOpacity = 1.0;
+  Color? blendColor;
+  bool enableShadow = true;
+  bool enableGlow = false;
 
-  final List<String> styleNames = [
-    "Square",
-    "Round",
-    "Oval",
-    "Almond",
-    "Stiletto",
-    "Coffin",
-  ];
+  final List<Map<String, dynamic>> _savedPresets = [];
+
+  // Key cho RenderRepaintBoundary (để chụp widget)
+  final GlobalKey _renderKey = GlobalKey();
 
   @override
   void initState() {
@@ -96,6 +82,30 @@ class _ArNailTryOnPageState extends State<ArNailTryOnPage>
     )..repeat(reverse: true);
 
     _initialize();
+    _preloadNailDesigns();
+  }
+
+  Future<void> _preloadNailDesigns() async {
+    if (_isPreloading) return;
+    _isPreloading = true;
+
+    for (int i = 0; i < nailDesigns.length; i++) {
+      try {
+        final ByteData data = await rootBundle.load(nailDesigns[i]);
+        final Uint8List bytes = data.buffer.asUint8List();
+        final ui.Codec codec = await ui.instantiateImageCodec(bytes);
+        final ui.FrameInfo frame = await codec.getNextFrame();
+        _cachedImages[i] = frame.image;
+        debugPrint('✅ Đã tải mẫu nail: ${nailDesigns[i]}');
+      } catch (e) {
+        debugPrint('❌ Lỗi tải ảnh ${nailDesigns[i]}: $e');
+      }
+    }
+    _isPreloading = false;
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _initialize() async {
@@ -109,7 +119,6 @@ class _ArNailTryOnPageState extends State<ArNailTryOnPage>
       final cameras = await availableCameras();
       if (cameras.isEmpty) return;
 
-      // Ưu tiên camera sau
       final camera = cameras.firstWhere(
             (c) => c.lensDirection == CameraLensDirection.back,
         orElse: () => cameras.first,
@@ -195,6 +204,304 @@ class _ArNailTryOnPageState extends State<ArNailTryOnPage>
     }
   }
 
+  // ================== HÀM CHỤP ẢNH ==================
+
+  Future<void> _captureAndSaveImage() async {
+    if (_isCapturing) return;
+
+    setState(() {
+      _isCapturing = true;
+    });
+
+    try {
+      // 1. Kiểm tra quyền lưu ảnh
+      final permission = await Permission.photos.request();
+      if (!permission.isGranted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cần cấp quyền truy cập thư viện ảnh'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // 2. Hiệu ứng flash khi chụp
+      await _showFlashEffect();
+
+      // 3. Chụp ảnh từ camera
+      final XFile? rawImage = await _cameraController?.takePicture();
+      if (rawImage == null) {
+        throw Exception('Không thể chụp ảnh');
+      }
+
+      // 4. Tạo ảnh AR composite
+      final Uint8List? arImage = await _captureArScene();
+
+      if (arImage != null) {
+        // 5. Lưu ảnh vào thư viện
+        await _saveImageToGallery(arImage);
+      } else {
+        // Fallback: Lưu ảnh camera thường
+        await _saveImageFileToGallery(rawImage);
+      }
+
+    } catch (e) {
+      debugPrint('Lỗi chụp ảnh: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCapturing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _showFlashEffect() async {
+    // Hiệu ứng flash trắng
+    final overlayColor = Colors.white.withOpacity(0.7);
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.transparent,
+      barrierDismissible: false,
+      builder: (context) => Material(
+        color: Colors.transparent,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          color: overlayColor,
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+
+    await Future.delayed(const Duration(milliseconds: 50));
+  }
+  // THÊM HÀM NÀY (thiếu trong code của bạn)
+  Future<void> _saveImageFileToGallery(XFile imageFile) async {
+    try {
+      // Kiểm tra quyền
+      final permission = await Permission.photos.status;
+      if (permission != PermissionStatus.granted) {
+        final newPermission = await Permission.photos.request();
+        if (newPermission != PermissionStatus.granted) {
+          throw Exception('Không có quyền truy cập thư viện ảnh');
+        }
+      }
+
+      // Lưu trực tiếp file từ camera
+      await Gal.putImage(
+        imageFile.path,
+        album: 'Nail AR',
+      );
+
+      // Hiển thị thông báo
+      if (mounted) {
+        _showSuccessDialog(imageFile.path.split('/').last);
+      }
+
+      debugPrint('✅ Đã lưu ảnh từ camera: ${imageFile.path}');
+
+    } on PlatformException catch (e) {
+      debugPrint('Lỗi PlatformException: ${e.message}');
+      throw Exception('Lỗi hệ thống: ${e.message}');
+    } catch (e) {
+      debugPrint('Lỗi không xác định: $e');
+      throw Exception('Không thể lưu ảnh: $e');
+    }
+  }
+  Future<Uint8List?> _captureArScene() async {
+    try {
+      // Tạo RenderRepaintBoundary để chụp widget
+      final renderObject = _renderKey.currentContext?.findRenderObject();
+      if (renderObject is! RenderRepaintBoundary) {
+        return null;
+      }
+
+      // Chuyển widget thành ảnh
+      final ui.Image image = await renderObject.toImage(pixelRatio: 2.0);
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      debugPrint('Lỗi chụp AR scene: $e');
+      return null;
+    }
+  }
+
+  Future<void> _saveImageToGallery(Uint8List imageBytes) async {
+    try {
+      // Kiểm tra quyền trước khi lưu
+      final permission = await Permission.photos.status;
+      if (permission != PermissionStatus.granted) {
+        final newPermission = await Permission.photos.request();
+        if (newPermission != PermissionStatus.granted) {
+          throw Exception('Không có quyền truy cập thư viện ảnh');
+        }
+      }
+
+      // Tạo file với chất lượng tốt
+      final tempDir = await getTemporaryDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'Nail_AR_$timestamp.png';
+      final filePath = '${tempDir.path}/$fileName';
+
+      // Lưu file với độ nén tốt
+      final imageFile = File(filePath);
+      await imageFile.writeAsBytes(imageBytes, flush: true);
+
+      // Lưu vào gallery
+      await Gal.putImage(
+        filePath,
+        album: 'Nail AR',
+      );
+
+      // Hiển thị thông báo
+      if (mounted) {
+        _showSuccessDialog(fileName);
+      }
+
+      // Log cho debug
+      debugPrint('✅ Đã lưu ảnh: $fileName');
+
+      // Dọn dẹp file tạm
+      _cleanupTempFile(imageFile);
+
+    } on PlatformException catch (e) {
+      debugPrint('Lỗi PlatformException: ${e.message}');
+      throw Exception('Lỗi hệ thống: ${e.message}');
+    } catch (e) {
+      debugPrint('Lỗi không xác định: $e');
+      throw Exception('Không thể lưu ảnh: $e');
+    }
+  }
+
+// Hàm dọn dẹp file tạm
+  void _cleanupTempFile(File file) {
+    try {
+      Future.delayed(const Duration(seconds: 30), () async {
+        if (await file.exists()) {
+          await file.delete();
+          debugPrint('🗑️ Đã xóa file tạm');
+        }
+      });
+    } catch (e) {
+      debugPrint('Lỗi xóa file tạm: $e');
+    }
+  }
+
+  // SỬA HÀM NÀY
+  void _showSuccessDialog(String fileName) {  // Thay đổi tham số từ String? thành String
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.black87,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          '✅ Đã lưu ảnh',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Ảnh đã được lưu vào thư viện ảnh',
+              style: TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Tên file: $fileName',  // Sử dụng fileName thay vì filePath
+              style: const TextStyle(color: Colors.grey, fontSize: 12),  // Tăng fontSize từ 10 lên 12
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK', style: TextStyle(color: Colors.pink)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Có thể thêm chức năng chia sẻ ảnh ở đây
+            },
+            child: const Text('Chia sẻ', style: TextStyle(color: Colors.pink)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================== HÀM TÙY CHỈNH ==================
+
+  void _resetAdjustments() {
+    setState(() {
+      nailSize = 1.0;
+      nailOffset = Offset.zero;
+      nailRotation = 0.0;
+      nailOpacity = 1.0;
+      blendColor = null;
+      enableShadow = true;
+      enableGlow = false;
+    });
+  }
+
+  void _saveCurrentPreset() {
+    final preset = {
+      'name': 'Preset ${_savedPresets.length + 1}',
+      'size': nailSize,
+      'offset': nailOffset,
+      'rotation': nailRotation,
+      'opacity': nailOpacity,
+      'blendColor': blendColor,
+      'enableShadow': enableShadow,
+      'enableGlow': enableGlow,
+      'designIndex': selectedDesign,
+    };
+    setState(() {
+      _savedPresets.add(preset);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Đã lưu preset'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _loadPreset(int index) {
+    if (index < _savedPresets.length) {
+      final preset = _savedPresets[index];
+      setState(() {
+        nailSize = preset['size'];
+        nailOffset = preset['offset'];
+        nailRotation = preset['rotation'];
+        nailOpacity = preset['opacity'];
+        blendColor = preset['blendColor'];
+        enableShadow = preset['enableShadow'];
+        enableGlow = preset['enableGlow'];
+        selectedDesign = preset['designIndex'];
+      });
+    }
+  }
+
   @override
   void dispose() {
     _pulseAnim.dispose();
@@ -226,34 +533,44 @@ class _ArNailTryOnPageState extends State<ArNailTryOnPage>
       body: SafeArea(
         child: Stack(
           children: [
-            // Vùng camera + AR
-            Center(
-              child: AspectRatio(
-                aspectRatio: previewAspectRatio,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    CameraPreview(controller),
-                    AnimatedBuilder(
-                      animation: _pulseAnim,
-                      builder: (context, child) {
-                        return CustomPaint(
-                          painter: HandArPainter(
-                            hands: _hands,
-                            previewSize: previewSize,
-                            lensDirection: controller.description.lensDirection,
-                            sensorOrientation:
-                            controller.description.sensorOrientation,
-                            showSkeleton: showSkeleton,
-                            nailColor: selectedColor,
-                            patternIndex: selectedPattern,
-                            styleIndex: selectedStyle,
-                            pulseValue: _pulseAnim.value,
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+            // Vùng camera + AR với RepaintBoundary để chụp ảnh
+            RepaintBoundary(
+              key: _renderKey,
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: previewAspectRatio,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CameraPreview(controller),
+                      AnimatedBuilder(
+                        animation: _pulseAnim,
+                        builder: (context, child) {
+                          return CustomPaint(
+                            painter: HandArPainter(
+                              hands: _hands,
+                              previewSize: previewSize,
+                              lensDirection: controller.description.lensDirection,
+                              sensorOrientation:
+                              controller.description.sensorOrientation,
+                              showSkeleton: showSkeleton,
+                              selectedDesign: selectedDesign,
+                              cachedImages: _cachedImages,
+                              pulseValue: _pulseAnim.value,
+                              // Truyền các tham số tùy chỉnh
+                              nailSize: nailSize,
+                              nailOffset: nailOffset,
+                              nailRotation: nailRotation,
+                              nailOpacity: nailOpacity,
+                              blendColor: blendColor,
+                              enableShadow: enableShadow,
+                              enableGlow: enableGlow,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -262,6 +579,12 @@ class _ArNailTryOnPageState extends State<ArNailTryOnPage>
             _buildTopBar(),
             _buildBottomMenu(),
             _buildActivePanel(),
+
+            // Hiển thị thông số tùy chỉnh (khi đang adjust)
+            if (activeTab == BottomTab.adjust) _buildAdjustmentOverlay(),
+
+            // Loading overlay khi đang chụp ảnh
+            if (_isCapturing) _buildCaptureOverlay(),
           ],
         ),
       ),
@@ -326,34 +649,40 @@ class _ArNailTryOnPageState extends State<ArNailTryOnPage>
       left: 0,
       right: 0,
       child: Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
-      decoration: const BoxDecoration(
-        color: Colors.black87,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _menuItem("Colors", Icons.color_lens, BottomTab.colors),
-          _menuItem("Patterns", Icons.brush, BottomTab.patterns),
-          _menuItem("Styles", Icons.style, BottomTab.styles),
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: Colors.pink,
-            child: IconButton(
-              icon: const Icon(Icons.camera_alt, color: Colors.white),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Tính năng chụp ảnh chưa sẵn sàng"),
-                  ),
-                );
-              },
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
+        decoration: const BoxDecoration(
+          color: Colors.black87,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _menuItem("Mẫu", Icons.brush, BottomTab.designs),
+            _menuItem("Tùy chỉnh", Icons.tune, BottomTab.adjust),
+            // Nút chụp ảnh với trạng thái loading
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              child: _isCapturing
+                  ? const SizedBox(
+                width: 48,
+                height: 48,
+                child: CircularProgressIndicator(
+                  color: Colors.pink,
+                  strokeWidth: 3,
+                ),
+              )
+                  : CircleAvatar(
+                radius: 24,
+                backgroundColor: Colors.pink,
+                child: IconButton(
+                  icon: const Icon(Icons.camera_alt, color: Colors.white),
+                  onPressed: _captureAndSaveImage,
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -391,142 +720,451 @@ class _ArNailTryOnPageState extends State<ArNailTryOnPage>
     );
   }
 
-  // ================== UI PANEL (COLORS / PATTERNS / STYLES) ==================
+  // ================== OVERLAY KHI CHỤP ẢNH ==================
+
+  Widget _buildCaptureOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.7),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.pink),
+              SizedBox(height: 20),
+              Text(
+                'Đang xử lý ảnh...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ================== UI PANEL (DESIGNS) ==================
 
   Widget _buildActivePanel() {
     if (activeTab == BottomTab.none) return const SizedBox.shrink();
 
-    Widget panelContent;
-    switch (activeTab) {
-      case BottomTab.colors:
-        panelContent = _buildColorPanel();
-        break;
-      case BottomTab.patterns:
-        panelContent = _buildPatternPanel();
-        break;
-      case BottomTab.styles:
-        panelContent = _buildStylePanel();
-        break;
-      default:
-        panelContent = const SizedBox.shrink();
+    if (activeTab == BottomTab.designs) {
+      return Positioned(
+        bottom: 90,
+        left: 10,
+        right: 10,
+        child: Container(
+          height: 140,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.85),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8, left: 4),
+                child: Text(
+                  "CHỌN MẪU NAIL",
+                  style: TextStyle(
+                    color: Colors.pink[200],
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: nailDesigns.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final isSelected = selectedDesign == index;
+                    return GestureDetector(
+                      onTap: () => setState(() => selectedDesign = index),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        width: 100,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? Colors.pink
+                                : Colors.grey.withOpacity(0.3),
+                            width: isSelected ? 3 : 1,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                            BoxShadow(
+                              color: Colors.pink.withOpacity(0.3),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                              : null,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Stack(
+                            children: [
+                              Image.asset(
+                                nailDesigns[index],
+                                fit: BoxFit.cover,
+                              ),
+                              if (isSelected)
+                                Container(
+                                  color: Colors.pink.withOpacity(0.15),
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.check_circle,
+                                      color: Colors.white,
+                                      size: 32,
+                                    ),
+                                  ),
+                                ),
+                              Positioned(
+                                top: 6,
+                                right: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
+    return const SizedBox.shrink();
+  }
+
+  // ================== PANEL TÙY CHỈNH ==================
+
+  Widget _buildAdjustmentOverlay() {
     return Positioned(
       bottom: 90,
       left: 10,
       right: 10,
       child: Container(
-        height: 80,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.7),
+          color: Colors.black.withOpacity(0.9),
           borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 20,
+              spreadRadius: 2,
+            ),
+          ],
         ),
-        child: panelContent,
-      ),
-    );
-  }
-
-  Widget _buildColorPanel() {
-    return ListView.separated(
-      scrollDirection: Axis.horizontal,
-      itemCount: colorPalette.length,
-      separatorBuilder: (_, __) => const SizedBox(width: 12),
-      itemBuilder: (context, index) {
-        final color = colorPalette[index];
-        final isSelected = selectedColor == color;
-
-        return GestureDetector(
-          onTap: () => setState(() => selectedColor = color),
-          child: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isSelected ? Colors.white : Colors.transparent,
-                width: 3,
-              ),
-              boxShadow: isSelected
-                  ? [
-                BoxShadow(
-                  color: color.withOpacity(0.5),
-                  blurRadius: 8,
-                ),
-              ]
-                  : null,
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildPatternPanel() {
-    return ListView.separated(
-      scrollDirection: Axis.horizontal,
-      itemCount: patternNames.length,
-      separatorBuilder: (_, __) => const SizedBox(width: 8),
-      itemBuilder: (context, index) {
-        final isSelected = selectedPattern == index;
-        return GestureDetector(
-          onTap: () => setState(() => selectedPattern = index),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.pink : Colors.white12,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: isSelected ? Colors.pinkAccent : Colors.transparent,
-              ),
-            ),
-            child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(patternIcons[index], color: Colors.white, size: 18),
-                const SizedBox(width: 8),
                 Text(
-                  patternNames[index],
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
+                  "TÙY CHỈNH NAIL",
+                  style: TextStyle(
+                    color: Colors.pink[200],
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.save, color: Colors.pink, size: 20),
+                      onPressed: _saveCurrentPreset,
+                      tooltip: 'Lưu preset',
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.restart_alt, color: Colors.white70, size: 20),
+                      onPressed: _resetAdjustments,
+                      tooltip: 'Reset',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Kích thước
+            _buildSlider(
+              label: "Kích thước",
+              value: nailSize,
+              min: 0.5,
+              max: 2.0,
+              onChange: (value) => setState(() => nailSize = value),
+              format: (value) => '${(value * 100).toInt()}%',
+            ),
+
+            // Độ trong suốt
+            _buildSlider(
+              label: "Độ trong suốt",
+              value: nailOpacity,
+              min: 0.0,
+              max: 1.0,
+              onChange: (value) => setState(() => nailOpacity = value),
+              format: (value) => '${(value * 100).toInt()}%',
+            ),
+
+            // Góc xoay
+            _buildSlider(
+              label: "Góc xoay",
+              value: nailRotation,
+              min: -math.pi,
+              max: math.pi,
+              onChange: (value) => setState(() => nailRotation = value),
+              format: (value) => '${(value * 180 / math.pi).round()}°',
+            ),
+
+            // Vị trí (Offset)
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSlider(
+                    label: "Dịch ngang",
+                    value: nailOffset.dx,
+                    min: -50,
+                    max: 50,
+                    onChange: (value) => setState(() => nailOffset = Offset(value, nailOffset.dy)),
+                    format: (value) => '${value.round()}px',
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildSlider(
+                    label: "Dịch dọc",
+                    value: nailOffset.dy,
+                    min: -50,
+                    max: 50,
+                    onChange: (value) => setState(() => nailOffset = Offset(nailOffset.dx, value)),
+                    format: (value) => '${value.round()}px',
                   ),
                 ),
               ],
             ),
-          ),
-        );
-      },
+
+            // Các toggle
+            Row(
+              children: [
+                _buildToggle(
+                  label: "Đổ bóng",
+                  value: enableShadow,
+                  onChange: (value) => setState(() => enableShadow = value),
+                ),
+                const SizedBox(width: 16),
+                _buildToggle(
+                  label: "Hiệu ứng sáng",
+                  value: enableGlow,
+                  onChange: (value) => setState(() => enableGlow = value),
+                ),
+              ],
+            ),
+
+            // Màu blend
+            const SizedBox(height: 12),
+            Text(
+              "Màu pha trộn:",
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  GestureDetector(
+                    onTap: () => setState(() => blendColor = null),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[800],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: blendColor == null ? Colors.pink : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                      child: const Center(
+                        child: Text("None", style: TextStyle(fontSize: 10, color: Colors.white)),
+                      ),
+                    ),
+                  ),
+                  ..._buildColorOptions(),
+                ],
+              ),
+            ),
+
+            // Hiển thị preset đã lưu
+            if (_savedPresets.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                "PRESET ĐÃ LƯU:",
+                style: TextStyle(color: Colors.pink[200], fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 50,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _savedPresets.length,
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () => _loadPreset(index),
+                      child: Container(
+                        width: 60,
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[900],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.pink),
+                        ),
+                        child: Center(
+                          child: Text(
+                            _savedPresets[index]['name'],
+                            style: const TextStyle(fontSize: 10, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildStylePanel() {
-    return ListView.separated(
-      scrollDirection: Axis.horizontal,
-      itemCount: styleNames.length,
-      separatorBuilder: (_, __) => const SizedBox(width: 8),
-      itemBuilder: (context, index) {
-        final isSelected = selectedStyle == index;
-        return GestureDetector(
-          onTap: () => setState(() => selectedStyle = index),
-          child: Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.pink : Colors.white12,
-              borderRadius: BorderRadius.circular(8),
+  Widget _buildSlider({
+    required String label,
+    required double value,
+    required double min,
+    required double max,
+    required Function(double) onChange,
+    required String Function(double) format,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
-            child: Text(
-              styleNames[index],
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
+            Text(
+              format(value),
+              style: TextStyle(color: Colors.pink, fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        Slider(
+          value: value,
+          min: min,
+          max: max,
+          onChanged: onChange,
+          activeColor: Colors.pink,
+          inactiveColor: Colors.grey[700],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildToggle({
+    required String label,
+    required bool value,
+    required Function(bool) onChange,
+  }) {
+    return Row(
+      children: [
+        Switch(
+          value: value,
+          onChanged: onChange,
+          activeColor: Colors.pink,
+          activeTrackColor: Colors.pink[200],
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildColorOptions() {
+    final colors = [
+      Colors.pink.withOpacity(0.5),
+      Colors.red.withOpacity(0.5),
+      Colors.orange.withOpacity(0.5),
+      Colors.yellow.withOpacity(0.5),
+      Colors.green.withOpacity(0.5),
+      Colors.blue.withOpacity(0.5),
+      Colors.purple.withOpacity(0.5),
+      Colors.white.withOpacity(0.5),
+      Colors.black.withOpacity(0.5),
+    ];
+
+    return colors.map((color) {
+      return GestureDetector(
+        onTap: () => setState(() => blendColor = color),
+        child: Container(
+          width: 40,
+          height: 40,
+          margin: const EdgeInsets.only(right: 8),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: blendColor == color ? Colors.pink : Colors.transparent,
+              width: 2,
             ),
           ),
-        );
-      },
-    );
+        ),
+      );
+    }).toList();
   }
 }
 
@@ -538,10 +1176,18 @@ class HandArPainter extends CustomPainter {
   final CameraLensDirection lensDirection;
   final int sensorOrientation;
   final bool showSkeleton;
-  final Color nailColor;
-  final int patternIndex;
-  final int styleIndex;
+  final int selectedDesign;
+  final Map<int, ui.Image> cachedImages; // ĐÃ CÓ
   final double pulseValue;
+
+  // Thêm các tham số tùy chỉnh
+  final double nailSize;
+  final Offset nailOffset;
+  final double nailRotation;
+  final double nailOpacity;
+  final Color? blendColor;
+  final bool enableShadow;
+  final bool enableGlow;
 
   HandArPainter({
     required this.hands,
@@ -549,36 +1195,35 @@ class HandArPainter extends CustomPainter {
     required this.lensDirection,
     required this.sensorOrientation,
     required this.showSkeleton,
-    required this.nailColor,
-    required this.patternIndex,
-    required this.styleIndex,
+    required this.selectedDesign,
+    required this.cachedImages,
     required this.pulseValue,
+    // Thêm các tham số tùy chỉnh
+    this.nailSize = 1.0,
+    this.nailOffset = Offset.zero,
+    this.nailRotation = 0.0,
+    this.nailOpacity = 1.0,
+    this.blendColor,
+    this.enableShadow = true,
+    this.enableGlow = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     if (hands.isEmpty) return;
 
-    // Scale để fit preview vào widget
     final scale = size.width / previewSize.height;
-
     canvas.save();
-
-    // Đưa gốc tọa độ về giữa
     final center = Offset(size.width / 2, size.height / 2);
     canvas.translate(center.dx, center.dy);
-
-    // Xoay theo orientation của sensor
     canvas.rotate(sensorOrientation * math.pi / 180);
 
-    // Nếu là camera trước thì lật lại cho đúng gương
     if (lensDirection == CameraLensDirection.front) {
       canvas.scale(-1, 1);
       canvas.rotate(math.pi);
     }
 
     canvas.scale(scale);
-
     final logicalWidth = previewSize.width;
     final logicalHeight = previewSize.height;
 
@@ -586,7 +1231,7 @@ class HandArPainter extends CustomPainter {
       if (showSkeleton) {
         _drawSkeleton(canvas, hand, logicalWidth, logicalHeight);
       }
-      _drawNails(canvas, hand, logicalWidth, logicalHeight);
+      _drawNailsWithAdjustments(canvas, hand, logicalWidth, logicalHeight);
     }
 
     canvas.restore();
@@ -612,27 +1257,11 @@ class HandArPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     final edges = [
-      [0, 1],
-      [1, 2],
-      [2, 3],
-      [3, 4], // Ngón cái
-      [0, 5],
-      [5, 6],
-      [6, 7],
-      [7, 8], // Ngón trỏ
-      [5, 9],
-      [9, 10],
-      [10, 11],
-      [11, 12], // Ngón giữa
-      [9, 13],
-      [13, 14],
-      [14, 15],
-      [15, 16], // Ngón áp út
-      [13, 17],
-      [0, 17],
-      [17, 18],
-      [18, 19],
-      [19, 20], // Ngón út
+      [0, 1], [1, 2], [2, 3], [3, 4],
+      [0, 5], [5, 6], [6, 7], [7, 8],
+      [5, 9], [9, 10], [10, 11], [11, 12],
+      [9, 13], [13, 14], [14, 15], [15, 16],
+      [13, 17], [0, 17], [17, 18], [18, 19], [19, 20],
     ];
 
     for (var edge in edges) {
@@ -652,10 +1281,23 @@ class HandArPainter extends CustomPainter {
     }
   }
 
-  void _drawNails(
+  void _drawNailsWithAdjustments(
       Canvas canvas, Hand hand, double logicalWidth, double logicalHeight) {
     final fingertips = [4, 8, 12, 16, 20];
     final dipJoints = [3, 7, 11, 15, 19];
+
+    // SỬA: Lấy ảnh trực tiếp từ cachedImages
+    final ui.Image? designImage = cachedImages[selectedDesign];
+
+    // Nếu chưa có ảnh, vẽ placeholder
+    if (designImage == null) {
+      _drawPlaceholderNails(canvas, hand, logicalWidth, logicalHeight);
+      return;
+    }
+
+    final srcWidth = designImage.width.toDouble();
+    final srcHeight = designImage.height.toDouble();
+    final srcRect = Rect.fromLTWH(0, 0, srcWidth, srcHeight);
 
     for (int i = 0; i < fingertips.length; i++) {
       final tipIdx = fingertips[i];
@@ -664,200 +1306,150 @@ class HandArPainter extends CustomPainter {
       final tipPos = _point(hand, tipIdx, logicalWidth, logicalHeight);
       final dipPos = _point(hand, dipIdx, logicalWidth, logicalHeight);
 
-      final baseSize = logicalWidth * 0.035;
+      // Kích thước cơ bản với multiplier
+      final baseSize = logicalWidth * 0.035 * nailSize;
       final animatedSize = baseSize * (1 + pulseValue * 0.15);
+      final displayWidth = animatedSize * 3.0;
+      final displayHeight = animatedSize * 3.5;
 
+      // Tính góc xoay theo hướng ngón tay + góc bổ sung
       final dx = tipPos.dx - dipPos.dx;
       final dy = tipPos.dy - dipPos.dy;
-      final angle = math.atan2(dy, dx) + math.pi / 2;
+      final fingerAngle = math.atan2(dy, dx) + math.pi / 2;
+      final totalRotation = fingerAngle + nailRotation;
 
       canvas.save();
-      canvas.translate(tipPos.dx, tipPos.dy);
-      canvas.rotate(angle);
 
-      _drawSingleNail(canvas, Offset.zero, animatedSize);
+      // Áp dụng offset
+      final adjustedTipPos = tipPos + nailOffset;
+      canvas.translate(adjustedTipPos.dx, adjustedTipPos.dy);
+      canvas.rotate(totalRotation);
+
+      // Vẽ shadow nếu bật
+      if (enableShadow) {
+        _drawShadow(canvas, displayWidth, displayHeight);
+      }
+
+      // Vẽ ảnh mẫu với opacity
+      final dstRect = Rect.fromCenter(
+        center: Offset.zero,
+        width: displayWidth,
+        height: displayHeight,
+      );
+
+      final paint = Paint();
+      if (blendColor != null) {
+        paint.colorFilter = ColorFilter.mode(blendColor!, BlendMode.color);
+      }
+      paint.color = paint.color.withOpacity(nailOpacity);
+
+      canvas.drawImageRect(designImage, srcRect, dstRect, paint);
+
+      // Vẽ glow effect nếu bật
+      if (enableGlow) {
+        _drawGlowEffect(canvas, displayWidth, displayHeight);
+      }
+
+      // Thêm viền trang trí
+      if (showSkeleton) {
+        canvas.drawRect(
+          dstRect.deflate(1),
+          Paint()
+            ..color = Colors.white.withOpacity(0.3 * nailOpacity)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1,
+        );
+      }
 
       canvas.restore();
     }
   }
 
-  void _drawSingleNail(Canvas canvas, Offset center, double s) {
-    switch (patternIndex) {
-      case 1:
-        _drawGlitter(canvas, center, s);
-        break;
-      case 2:
-        _drawGradient(canvas, center, s);
-        break;
-      case 3:
-        _drawFrench(canvas, center, s);
-        break;
-      case 4:
-        _drawOmbre(canvas, center, s);
-        break;
-      default:
-        _drawSolid(canvas, center, s);
-    }
-  }
+  void _drawShadow(Canvas canvas, double width, double height) {
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.3)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8);
 
-  Paint _getBasePaint() => Paint()
-    ..color = nailColor
-    ..style = PaintingStyle.fill
-    ..isAntiAlias = true;
-
-  void _drawShape(Canvas canvas, Offset c, double s, Paint p) {
-    final width = s * 1.8;
-    final height = s * 2.2;
-    final rect = Rect.fromCenter(center: c, width: width, height: height);
-
-    switch (styleIndex) {
-      case 0: // Square
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(rect, const Radius.circular(4)),
-          p,
-        );
-        break;
-      case 1: // Round
-        canvas.drawCircle(c, s, p);
-        break;
-      case 3: // Almond
-        _drawAlmondPath(canvas, rect, p);
-        break;
-      case 4: // Stiletto
-        _drawStilettoPath(canvas, rect, p);
-        break;
-      case 5: // Coffin
-        _drawCoffinPath(canvas, rect, p);
-        break;
-      default: // Oval
-        canvas.drawOval(rect, p);
-    }
-  }
-
-  void _drawAlmondPath(Canvas canvas, Rect rect, Paint p) {
-    final path = Path()
-      ..moveTo(rect.center.dx, rect.top)
-      ..quadraticBezierTo(
-          rect.right, rect.top + rect.height * 0.3, rect.right,
-          rect.bottom - rect.height * 0.2)
-      ..quadraticBezierTo(rect.right, rect.bottom, rect.center.dx, rect.bottom)
-      ..quadraticBezierTo(
-          rect.left, rect.bottom, rect.left, rect.bottom - rect.height * 0.2)
-      ..quadraticBezierTo(
-          rect.left, rect.top + rect.height * 0.3, rect.center.dx, rect.top);
-    canvas.drawPath(path, p);
-  }
-
-  void _drawStilettoPath(Canvas canvas, Rect rect, Paint p) {
-    final path = Path()
-      ..moveTo(rect.center.dx, rect.top - rect.height * 0.1)
-      ..lineTo(rect.right, rect.bottom - rect.height * 0.3)
-      ..quadraticBezierTo(rect.right, rect.bottom, rect.center.dx, rect.bottom)
-      ..quadraticBezierTo(
-          rect.left, rect.bottom, rect.left, rect.bottom - rect.height * 0.3)
-      ..close();
-    canvas.drawPath(path, p);
-  }
-
-  void _drawCoffinPath(Canvas canvas, Rect rect, Paint p) {
-    final path = Path()
-      ..moveTo(rect.center.dx - rect.width * 0.3, rect.top)
-      ..lineTo(rect.center.dx + rect.width * 0.3, rect.top)
-      ..lineTo(rect.right, rect.bottom - rect.height * 0.2)
-      ..quadraticBezierTo(rect.right, rect.bottom, rect.center.dx, rect.bottom)
-      ..quadraticBezierTo(
-          rect.left, rect.bottom, rect.left, rect.bottom - rect.height * 0.2)
-      ..close();
-    canvas.drawPath(path, p);
-  }
-
-  void _drawSolid(Canvas canvas, Offset c, double s) {
-    _drawShape(canvas, c, s, _getBasePaint());
-  }
-
-  void _drawGlitter(Canvas canvas, Offset c, double s) {
-    _drawSolid(canvas, c, s);
-
-    final rnd = math.Random();
-    final glitterPaint = Paint()..color = Colors.white.withOpacity(0.8);
-
-    canvas.save();
-    canvas.clipRect(
-      Rect.fromCenter(center: c, width: s * 2, height: s * 2.5),
-    );
-
-    for (int i = 0; i < 20; i++) {
-      final dx = c.dx + (rnd.nextDouble() * 2 - 1) * s * 0.8;
-      final dy = c.dy + (rnd.nextDouble() * 2 - 1) * s * 1.0;
-      canvas.drawCircle(
-        Offset(dx, dy),
-        s * (0.05 + rnd.nextDouble() * 0.05),
-        glitterPaint,
-      );
-    }
-    canvas.restore();
-  }
-
-  void _drawGradient(Canvas canvas, Offset c, double s) {
-    final rect = Rect.fromCenter(center: c, width: s * 2, height: s * 2.5);
-    final p = Paint()
-      ..shader = RadialGradient(
-        colors: [nailColor.withOpacity(0.4), nailColor],
-        stops: const [0.2, 1.0],
-        center: Alignment.topLeft,
-      ).createShader(rect);
-    _drawShape(canvas, c, s, p);
-  }
-
-  void _drawFrench(Canvas canvas, Offset c, double s) {
-    final baseColor = nailColor.withOpacity(0.3);
-    _drawShape(canvas, c, s, Paint()..color = baseColor);
-
-    final tipPaint = Paint()..color = Colors.white;
-    final width = s * 1.8;
-    final height = s * 2.2;
-
-    canvas.drawArc(
+    canvas.drawRect(
       Rect.fromCenter(
-        center: Offset(c.dx, c.dy - height * 0.3),
+        center: Offset(4, 4), // Độ lệch shadow
         width: width,
-        height: height * 0.6,
+        height: height,
       ),
-      math.pi,
-      math.pi,
-      true,
-      tipPaint,
-    );
-
-    _drawShape(
-      canvas,
-      c,
-      s,
-      Paint()
-        ..color = nailColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5,
+      shadowPaint,
     );
   }
 
-  void _drawOmbre(Canvas canvas, Offset c, double s) {
-    final rect = Rect.fromCenter(center: c, width: s * 2, height: s * 2.5);
-    final p = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Colors.white.withOpacity(0.2), nailColor],
-      ).createShader(rect);
-    _drawShape(canvas, c, s, p);
+  void _drawGlowEffect(Canvas canvas, double width, double height) {
+    final glowPaint = Paint()
+      ..color = Colors.white.withOpacity(0.2)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+
+    final rect = Rect.fromCenter(
+      center: Offset.zero,
+      width: width * 1.1,
+      height: height * 1.1,
+    );
+
+    canvas.drawRect(rect, glowPaint);
+  }
+
+  void _drawPlaceholderNails(
+      Canvas canvas, Hand hand, double logicalWidth, double logicalHeight) {
+    final fingertips = [4, 8, 12, 16, 20];
+    final dipJoints = [3, 7, 11, 15, 19];
+
+    final placeholderPaint = Paint()
+      ..color = Colors.pink.withOpacity(0.7 * nailOpacity)
+      ..style = PaintingStyle.fill;
+
+    for (int i = 0; i < fingertips.length; i++) {
+      final tipIdx = fingertips[i];
+      final dipIdx = dipJoints[i];
+
+      final tipPos = _point(hand, tipIdx, logicalWidth, logicalHeight);
+      final dipPos = _point(hand, dipIdx, logicalWidth, logicalHeight);
+
+      final baseSize = logicalWidth * 0.035 * nailSize;
+      final animatedSize = baseSize * (1 + pulseValue * 0.15);
+
+      final dx = tipPos.dx - dipPos.dx;
+      final dy = tipPos.dy - dipPos.dy;
+      final fingerAngle = math.atan2(dy, dx) + math.pi / 2;
+      final totalRotation = fingerAngle + nailRotation;
+
+      canvas.save();
+      final adjustedTipPos = tipPos + nailOffset;
+      canvas.translate(adjustedTipPos.dx, adjustedTipPos.dy);
+      canvas.rotate(totalRotation);
+
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset.zero,
+          width: animatedSize * 1.8,
+          height: animatedSize * 2.2,
+        ),
+        placeholderPaint,
+      );
+
+      canvas.restore();
+    }
   }
 
   @override
   bool shouldRepaint(covariant HandArPainter oldDelegate) {
     return oldDelegate.hands != hands ||
         oldDelegate.showSkeleton != showSkeleton ||
-        oldDelegate.nailColor != nailColor ||
-        oldDelegate.patternIndex != patternIndex ||
-        oldDelegate.styleIndex != styleIndex ||
-        oldDelegate.pulseValue != pulseValue;
+        oldDelegate.selectedDesign != selectedDesign ||
+        oldDelegate.pulseValue != pulseValue ||
+        oldDelegate.nailSize != nailSize ||
+        oldDelegate.nailOffset != nailOffset ||
+        oldDelegate.nailRotation != nailRotation ||
+        oldDelegate.nailOpacity != nailOpacity ||
+        oldDelegate.blendColor != blendColor ||
+        oldDelegate.enableShadow != enableShadow ||
+        oldDelegate.enableGlow != enableGlow;
   }
 }
