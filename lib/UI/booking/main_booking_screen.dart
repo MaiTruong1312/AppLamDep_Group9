@@ -142,20 +142,6 @@ class _MainBookingScreenState extends State<MainBookingScreen> {
           ],
         ),
       ),
-
-      // Floating Action Button cho AR Try-on
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Tính năng AR đang phát triển'),
-              backgroundColor: Colors.blue,
-            ),
-          );
-        },
-        backgroundColor: const Color(0xFFF25278),
-        child: const Icon(Icons.camera_alt, color: Colors.white),
-      ),
     );
   }
 

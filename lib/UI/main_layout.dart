@@ -1,4 +1,5 @@
 // main_layout.dart
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:applamdep/UI/Main/Home.dart';
 import 'package:applamdep/UI/profile/profile_screen.dart';
@@ -8,7 +9,7 @@ import 'package:applamdep/UI/discover/discover_screen.dart';
 import 'package:applamdep/UI/ar/home.dart';
 import 'package:applamdep/UI/chatbot/home.dart';
 import 'package:applamdep/services/booking_cart_service.dart';
-import 'package:applamdep/UI/booking/booking_cart_screen.dart'; // Đổi tên file
+import 'package:applamdep/UI/booking/booking_cart_screen.dart';
 
 class MainLayout extends StatefulWidget {
   final int initialTabIndex;
@@ -22,21 +23,69 @@ class MainLayout extends StatefulWidget {
   State<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MainLayoutState extends State<MainLayout> {
+class _MainLayoutState extends State<MainLayout>
+    with SingleTickerProviderStateMixin {
   late int _currentIndex;
+  bool _isFabExpanded = false;
+  late AnimationController _fabAnimationController;
+  late Animation<double> _fabScaleAnimation;
+  late Animation<double> _fabRotationAnimation;
 
   final List<Widget> _pages = const [
-    HomeScreen(),           // Tab 0
-    CollectionScreen(),     // Tab 1
-    MainBookingScreen(),    // Tab 2
-    DiscoverScreen(),       // Tab 3
-    ProfileScreen(),        // Tab 4
+    HomeScreen(), // Tab 0
+    CollectionScreen(), // Tab 1
+    MainBookingScreen(), // Tab 2
+    DiscoverScreen(), // Tab 3
+    ProfileScreen(), // Tab 4
   ];
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialTabIndex;
+
+    // Animation controller cho FAB
+    _fabAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    _fabScaleAnimation = CurvedAnimation(
+      parent: _fabAnimationController,
+      curve: Curves.easeInOutBack,
+    );
+
+    _fabRotationAnimation = CurvedAnimation(
+      parent: _fabAnimationController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _fabAnimationController.dispose();
+    super.dispose();
+  }
+
+  void _toggleFabMenu() {
+    setState(() {
+      _isFabExpanded = !_isFabExpanded;
+      if (_isFabExpanded) {
+        _fabAnimationController.forward();
+      } else {
+        _fabAnimationController.reverse();
+      }
+    });
+  }
+
+  void _navigateToScreen(Widget screen) {
+    _toggleFabMenu();
+    Future.delayed(const Duration(milliseconds: 200), () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => screen),
+      );
+    });
   }
 
   @override
@@ -47,132 +96,28 @@ class _MainLayoutState extends State<MainLayout> {
         children: _pages,
       ),
 
-      // Floating Action Button với popup menu
+      // Floating Action Button với Circular Glass Menu
       floatingActionButton: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.bottomRight,
         children: [
-          // Popup Menu Button (AR + Message + Đặt lịch)
-          PopupMenuButton<String>(
-            offset: const Offset(0, -120),
-            onSelected: (String value) {
-              if (value == 'ar') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ArNailTryOnPage()),
-                );
-              } else if (value == 'message') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ChatBotPage()),
-                );
-              } else if (value == 'booking_cart') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const BookingCartScreen()),
-                );
-              }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'ar',
-                child: ListTile(
-                  leading: Icon(Icons.camera_alt, color: Color(0xFFF25278)),
-                  title: Text('AR Thử Nail'),
-                  subtitle: Text('Thử nail ảo với camera'),
-                ),
+          // Overlay khi mở menu
+          if (_isFabExpanded)
+            GestureDetector(
+              onTap: _toggleFabMenu,
+              child: Container(
+                color: Colors.transparent,
               ),
-              const PopupMenuItem<String>(
-                value: 'message',
-                child: ListTile(
-                  leading: Icon(Icons.message, color: Color(0xFFF25278)),
-                  title: Text('Tư vấn AI'),
-                  subtitle: Text('Chat với trợ lý ảo'),
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'booking_cart',
-                child: StreamBuilder<int>(
-                  stream: BookingCartService().getBookingCartItemCount(),
-                  builder: (context, snapshot) {
-                    int count = snapshot.data ?? 0;
-                    return ListTile(
-                      leading: const Icon(Icons.calendar_today, color: Color(0xFFF25278)),
-                      title: const Text('Danh sách đặt lịch'),
-                      subtitle: const Text('Xem mẫu nail đã chọn'),
-                      trailing: count > 0
-                          ? Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          count.toString(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      )
-                          : null,
-                    );
-                  },
-                ),
-              ),
-            ],
-            child: Container(
-              width: 56.0,
-              height: 56.0,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF25278),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.pinkAccent.withOpacity(0.4),
-                    blurRadius: 18,
-                    spreadRadius: 2,
-                  )
-                ],
-              ),
-              child: const Icon(Icons.auto_awesome, size: 28, color: Colors.white),
             ),
-          ),
 
-          // Badge cho danh sách đặt lịch
+          // Các nút action với hiệu ứng glass (xuất hiện khi mở menu)
+          ..._buildFabMenuItems(),
+
+          // Nút FAB chính với hiệu ứng glass morphism
           Positioned(
-            right: 0,
-            top: 0,
-            child: StreamBuilder<int>(
-              stream: BookingCartService().getBookingCartItemCount(),
-              builder: (context, snapshot) {
-                int count = snapshot.data ?? 0;
-                if (count > 0) {
-                  return Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.red,
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      count > 9 ? '9+' : count.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
+            bottom: 20,
+            right: 20,
+            child: _buildMainFab(),
           ),
         ],
       ),
@@ -182,9 +127,9 @@ class _MainLayoutState extends State<MainLayout> {
       // Bottom Navigation Bar
       bottomNavigationBar: Container(
         padding: const EdgeInsets.only(top: 6, bottom: 20),
-        decoration: const BoxDecoration(
-          color: Color(0xFFF5F5F5),
-          border: Border(top: BorderSide(color: Color(0xFFE0E2E5))),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          border: Border(top: BorderSide(color: Colors.grey[300]!)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -200,6 +145,269 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
+  // ================== FAB MENU ITEMS ==================
+
+  List<Widget> _buildFabMenuItems() {
+    // SỬA 1: Chỉ ẩn hẳn khi animation đã chạy xong chiều về (reverse)
+    if (!_isFabExpanded && _fabAnimationController.isDismissed) return [];
+
+    const double radius = 120;
+
+    return [
+      // AR Thử Nail
+      _buildFabMenuItem(
+        index: 0,
+        icon: Icons.camera_alt,
+        label: 'AR Thử Nail',
+        color: const Color(0xFF6A11CB),
+        screen: const ArNailTryOnPage(),
+        angle: 0,
+      ),
+      // Tư vấn AI
+      _buildFabMenuItem(
+        index: 1,
+        icon: Icons.message,
+        label: 'Tư vấn AI',
+        color: const Color(0xFF2575FC),
+        screen: const ChatBotPage(),
+        angle: 50,
+      ),
+      // Danh sách đặt lịch - có badge
+      StreamBuilder<int>(
+        stream: BookingCartService().getBookingCartItemCount(),
+        builder: (context, snapshot) {
+          final int bookingCount = snapshot.data ?? 0;
+          return _buildFabMenuItem(
+            index: 2,
+            icon: Icons.calendar_today,
+            label: 'Danh sách đặt lịch',
+            color: const Color(0xFFF7971E),
+            screen: const BookingCartScreen(),
+            angle: 110,
+            badgeCount: bookingCount, // Thêm badge count
+          );
+        },
+      ),
+    ];
+  }
+
+  Widget _buildFabMenuItem({
+    required int index,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Widget screen,
+    required double angle,
+    int badgeCount = 0,
+  }) {
+    final double radian = angle * (pi / 180);
+
+    return Positioned(
+      bottom: 20 + 120 * sin(radian),
+      right: 20 + 120 * cos(radian),
+      child: ScaleTransition(
+        scale: _fabScaleAnimation,
+        child: FadeTransition(
+          opacity: _fabAnimationController,
+          child: _buildGlassFabItem(
+            icon: icon,
+            label: label,
+            color: color,
+            onTap: () => _navigateToScreen(screen),
+            badgeCount: badgeCount, // Truyền badgeCount vào
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlassFabItem({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+    int badgeCount = 0,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Label với hiệu ứng glass
+        Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.3),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 15,
+                spreadRadius: 1,
+                offset: const Offset(0, 4),
+              ),
+              BoxShadow(
+                color: Colors.white.withOpacity(0.05),
+                blurRadius: 10,
+                spreadRadius: 1,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+
+        // Icon với hiệu ứng glass morphism và badge
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            GestureDetector(
+              onTap: onTap,
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      color.withOpacity(0.8),
+                      color.withOpacity(0.6),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.4),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.4),
+                      blurRadius: 15,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 5),
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.1),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                      offset: const Offset(0, -3),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  icon,
+                  size: 26,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+
+            // Badge cho danh sách đặt lịch (chỉ hiển thị khi có số lượng > 0)
+            if (badgeCount > 0)
+              Positioned(
+                top: -4,
+                right: -4,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.red.withOpacity(0.6),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    badgeCount > 9 ? '9+' : badgeCount.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMainFab() {
+    return GestureDetector(
+      onTap: _toggleFabMenu,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: _isFabExpanded
+              ? const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFF25278),
+              Color(0xFFFD4F6A),
+            ],
+          )
+              : const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFF25278),
+              Color(0xFFF25278),
+            ],
+          ),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.3),
+            width: _isFabExpanded ? 2 : 0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.pinkAccent.withOpacity(_isFabExpanded ? 0.4 : 0.3),
+              blurRadius: _isFabExpanded ? 25 : 15,
+              spreadRadius: _isFabExpanded ? 3 : 1,
+              offset: const Offset(0, 6),
+            ),
+            BoxShadow(
+              color: Colors.white.withOpacity(0.1),
+              blurRadius: 10,
+              spreadRadius: 1,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: AnimatedRotation(
+          duration: const Duration(milliseconds: 400),
+          turns: _fabRotationAnimation.value * 0.125,
+          child: Icon(
+            _isFabExpanded ? Icons.close : Icons.auto_awesome,
+            size: 28,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ================== BOTTOM NAVIGATION ITEMS ==================
+
   Widget _bottomItem(IconData icon, String label, int index) {
     bool active = _currentIndex == index;
 
@@ -209,10 +417,13 @@ class _MainLayoutState extends State<MainLayout> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: active ? const Color(0xFFF25278).withOpacity(0.1) : Colors.transparent,
+              color: active
+                  ? const Color(0xFFF25278).withOpacity(0.1)
+                  : Colors.transparent,
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -225,7 +436,8 @@ class _MainLayoutState extends State<MainLayout> {
           Text(
             label,
             style: TextStyle(
-              color: active ? const Color(0xFFF25278) : const Color(0xFF8F929C),
+              color:
+              active ? const Color(0xFFF25278) : const Color(0xFF8F929C),
               fontWeight: FontWeight.w600,
               fontSize: 11,
             ),
@@ -248,7 +460,8 @@ class _MainLayoutState extends State<MainLayout> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const BookingCartScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const BookingCartScreen()),
                 );
               },
             ),
