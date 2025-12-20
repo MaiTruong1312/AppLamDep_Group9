@@ -93,7 +93,7 @@ class Store {
 
 class Flashsale {
   final String title;
-  final String imageUrl; // Phải có trường này để sửa lỗi dòng 207
+  final String imageUrl;
   final double discount;
 
   Flashsale({required this.title, required this.imageUrl, required this.discount});

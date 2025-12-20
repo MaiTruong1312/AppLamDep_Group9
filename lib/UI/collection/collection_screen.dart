@@ -5,6 +5,7 @@ import 'package:applamdep/models/nail_model.dart';
 import 'package:applamdep/models/store_model.dart';
 import 'package:applamdep/UI/detail/nail_detail_screen.dart';
 import 'package:applamdep/widgets/nail_card.dart';
+
 class CollectionScreen extends StatefulWidget {
   const CollectionScreen({Key? key}) : super(key: key);
 
@@ -42,16 +43,11 @@ class _CollectionScreenState extends State<CollectionScreen> {
 
   Future<Map<String, Store>> _loadStores() async {
     try {
-      print('DEBUG: Bắt đầu tải stores từ Firestore...');
-
       final QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('stores')
           .get(const GetOptions(source: Source.serverAndCache));
 
-      print('DEBUG: Nhận được ${snapshot.docs.length} stores');
-
       if (snapshot.docs.isEmpty) {
-        print('DEBUG: Collection stores tồn tại nhưng không có document');
         return {}; // Trả về map rỗng
       }
 
@@ -59,21 +55,15 @@ class _CollectionScreenState extends State<CollectionScreen> {
 
       for (var doc in snapshot.docs) {
         try {
-          print('DEBUG: Processing store ${doc.id} - Data: ${doc.data()}');
           storesMap[doc.id] = Store.fromFirestore(doc);
         } catch (e) {
-          print('DEBUG: Lỗi khi parse store ${doc.id}: $e');
           // Bỏ qua document lỗi hoặc tạo store mặc định
         }
       }
 
-      print('DEBUG: Đã load thành công ${storesMap.length} stores');
       return storesMap;
 
-    } catch (e, stackTrace) {
-      print('DEBUG: Lỗi nghiêm trọng trong _loadStores: $e');
-      print('DEBUG: Stack trace: $stackTrace');
-
+    } catch (e) {
       // Trả về map rỗng để UI không bị crash
       return {};
     }
@@ -127,7 +117,6 @@ class _CollectionScreenState extends State<CollectionScreen> {
         }
       });
     } catch (e) {
-      print("Lỗi khi like: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Có lỗi xảy ra')),
       );
@@ -171,16 +160,11 @@ class _CollectionScreenState extends State<CollectionScreen> {
       body: FutureBuilder<Map<String, Store>>(
         future: _storesFuture,
         builder: (context, storeSnapshot) {
-          print('DEBUG: FutureBuilder - ConnectionState: ${storeSnapshot.connectionState}');
-          print('DEBUG: FutureBuilder - HasError: ${storeSnapshot.hasError}');
-          print('DEBUG: FutureBuilder - HasData: ${storeSnapshot.hasData}');
-
           if (storeSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
           if (storeSnapshot.hasError) {
-            print('DEBUG: Store error: ${storeSnapshot.error}');
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -205,7 +189,6 @@ class _CollectionScreenState extends State<CollectionScreen> {
           }
 
           final storesMap = storeSnapshot.data ?? {};
-          print('DEBUG: Stores map size: ${storesMap.length}');
 
           // Vẫn hiển thị UI ngay cả khi không có stores
           return Stack(
@@ -623,28 +606,8 @@ class _CollectionScreenState extends State<CollectionScreen> {
               mainAxisExtent: 280,
             ),
             itemBuilder: (context, index) {
-              final doc = snapshot.data!.docs[index];
-              final data = doc.data() as Map<String, dynamic>;
-
-              // DEBUG: Kiểm tra trường storeId thực tế
-              print('DEBUG Document ${doc.id}:');
-              print('  Data keys: ${data.keys}');
-              print('  store_id value: ${data['store_id']}');
-              print('  storeId value: ${data['storeId']}');
-
-              final nail = Nail.fromFirestore(doc);
-
-              // DEBUG: Xem storeId đã parse được
-              print('  Parsed storeId: ${nail.storeId}');
-              print('  StoresMap keys: ${storesMap.keys}');
-              print('  Store exists: ${storesMap.containsKey(nail.storeId)}');
-
+              final nail = nails[index];
               final store = storesMap[nail.storeId];
-
-              if (store == null) {
-                print('  ❌ STORE NULL for storeId: ${nail.storeId}');
-              }
-
               return NailCard(
                 nail: nail,
                 store: store,

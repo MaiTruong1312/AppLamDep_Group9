@@ -193,7 +193,7 @@ class _BookingScreenState extends State<BookingScreen> {
         'store_id': selectedStore.id,
         'store_name': selectedStore.name,
         'store_address': selectedStore.address,
-        'store_phone': selectedStore.hotline,
+        'store_phone': selectedStore.phone,
         'nail_id': widget.selectedNail.id,
         'nail_name': widget.selectedNail.name,
         'nail_image': widget.selectedNail.imgUrl,
