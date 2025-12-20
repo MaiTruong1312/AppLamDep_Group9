@@ -8,6 +8,8 @@ import 'package:applamdep/UI/profile/Linked_appearance.dart';
 import 'package:applamdep/UI/profile/help_support_screen.dart';
 import 'package:applamdep/UI/profile/PaymentMethod.dart';
 import 'package:applamdep/UI/profile/my_booking_screen.dart';
+import 'package:applamdep/UI/profile/receipts_screen.dart';
+import 'package:applamdep/UI/profile/coupons_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,6 +27,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String _userName = 'Loading...';
   String _userAvatarInitial = '';
+  double _completionPercentage = 0.0;
+  bool _isProfileComplete = false;
 
   @override
   void initState() {
@@ -34,37 +38,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserData() async {
     final User? user = _auth.currentUser;
-    if (user == null) {
-      // If user is somehow not logged in, handle it gracefully
-      if (mounted) {
-        setState(() {
-          _userName = "Not Logged In";
-        });
-      }
-      return;
-    }
+    if (user == null) return;
 
     try {
-      final DocumentSnapshot userData =
-          await _firestore.collection('users').doc(user.uid).get();
+      final DocumentSnapshot userData = await _firestore.collection('users').doc(user.uid).get();
 
       if (mounted && userData.exists) {
         final data = userData.data() as Map<String, dynamic>?;
+
+        // LOGIC TÍNH % HOÀN THÀNH
+        int completedFields = 0;
+        // 1. Kiểm tra tên
+        if (data?['name'] != null && data!['name'].toString().trim().isNotEmpty) completedFields++;
+        // 2. Kiểm tra số điện thoại
+        if (data?['phone'] != null && data!['phone'].toString().trim().isNotEmpty) completedFields++;
+        // 3. Kiểm tra giới tính
+        if (data?['gender'] != null && data!['gender'].toString().trim().isNotEmpty) completedFields++;
+        // 4. Kiểm tra ngày sinh
+        if (data?['dob'] != null && data!['dob'].toString().trim().isNotEmpty) completedFields++;
+        // 5. Kiểm tra ảnh đại diện
+        if (data?['photoUrl'] != null && data!['photoUrl'].toString().trim().isNotEmpty) completedFields++;
+
         setState(() {
           _userName = data?['name'] ?? 'No Name';
-          if (_userName.isNotEmpty) {
-            _userAvatarInitial = _userName[0].toUpperCase();
-          } else {
-            _userAvatarInitial = '';
-          }
+          _userAvatarInitial = _userName.isNotEmpty ? _userName[0].toUpperCase() : '';
+
+          // Cập nhật % (mỗi trường chiếm 20%)
+          _completionPercentage = completedFields / 5;
+          _isProfileComplete = completedFields == 5;
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _userName = 'Error';
-        });
-      }
+      debugPrint("Error loading profile: $e");
     }
   }
 
@@ -176,81 +181,114 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
     // 3. Complete Profile Card
+  // 3. Complete Profile Card - Cập nhật giao diện theo thiết kế
   Widget _buildCompleteProfileCard() {
+    // Nếu đã xong 100% thì không hiện card này nữa
+    if (_isProfileComplete) return const SizedBox.shrink();
+
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFF25278),
-          width: 1.5,
-        ), // Viền hồng
+        border: Border.all(color: const Color(0xFFF25278), width: 1), // Viền hồng
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'Complete your profile',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF313235)),
+                style: TextStyle(
+                  color: Color(0xFF313235),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Inter',
+                ),
               ),
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFE4E8),
-                  shape: BoxShape.circle,
+              const SizedBox(height: 8),
+              const SizedBox(
+                width: 250, // Giới hạn chiều rộng để không đè vào icon người
+                child: Text(
+                  'Providing more information will enable quicker and safer payments.',
+                  style: TextStyle(
+                    color: Color(0xFF7B7D87),
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.person_outline,
-                  color: Color(0xFFF25278),
-                  size: 20,
-                ),
+              ),
+              const SizedBox(height: 16),
+              // Dòng tiến độ và nút bấm
+              Row(
+                children: [
+                  Text(
+                    '${(_completionPercentage * 100).toInt()}%',
+                    style: const TextStyle(
+                      color: Color(0xFF313235),
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: _completionPercentage,
+                        backgroundColor: const Color(0xFFEEEEEE),
+                        color: const Color(0xFF247133), // Màu xanh lá cây
+                        minHeight: 6,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const EditProfileScreen()),
+                      ).then((_) => _loadUserData());
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF25278),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    ),
+                    child: const Text(
+                      'Continue',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Providing more information will enable quicker and safer payments.',
-            style: TextStyle(color: Color(0xFF54565B), fontSize: 14),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              const Text('20%', style: TextStyle(fontWeight: FontWeight.bold,color: Color(0xFF313235))),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: 0.2,
-                    backgroundColor: Colors.grey[200],
-                    color: const Color(0xFF247133), // Màu xanh lá
-                    minHeight: 6,
-                  ),
-                ),
+          // Biểu tượng người ở góc phải
+          Positioned(
+            right: 0,
+            top: 0,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFFE4E8), // Màu nền hồng nhạt
+                shape: BoxShape.circle,
               ),
-              const SizedBox(width: 16),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF25278),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 10,
-                  ),
-                ),
-                child: const Text(
-                  'Continue',
-                  style: TextStyle(color: Colors.white),
-                ),
+              child: const Icon(
+                Icons.person_outline,
+                color: Color(0xFFF25278),
+                size: 24,
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -351,6 +389,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const WishlistScreen()),
+              );
+            }
+            else if (item['label'] == 'Coupons') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CouponsScreen()),
+              );
+            }
+            else if (item['label'] == 'Receipts') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ReceiptsScreen()),
               );
             }
           },
