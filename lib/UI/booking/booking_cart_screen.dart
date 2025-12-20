@@ -611,7 +611,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
       id: firstStoreId,
       name: items.first.storeName,
       address: '',
-      phone: '',
+      hotline: '',
       isOpen: true,
       imgUrl: '',
       location: const GeoPoint(0, 0),
