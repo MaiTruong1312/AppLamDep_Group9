@@ -34,12 +34,12 @@ class Review {
   // Thêm vào file review_model.dart
   factory Review.fromMap(Map<String, dynamic> data) {
     return Review(
-      id: '', // Có thể để trống nếu bình luận nằm trong mảng của Store
+      id: '', // ID có thể để trống nếu là sub-collection
+      nailId: data['nail_id'] ?? '', // THÊM DÒNG NÀY ĐỂ HẾT LỖI
       userId: data['user_id'] ?? '',
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
       comment: data['comment'] ?? '',
       mediaUrl: data['media_url'],
-      // Chuyển đổi Timestamp từ Firestore sang DateTime
       createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }

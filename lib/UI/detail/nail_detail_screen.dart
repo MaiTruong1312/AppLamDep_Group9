@@ -120,7 +120,9 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
   File? _imageFile;
 
   // --- LOGIC HELPERS ---
-
+  void _toggleLike() {
+    setState(() {});
+  }
   void _showReviewDialog() {
     double _rating = 0;
     final _commentController = TextEditingController();
@@ -1185,7 +1187,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
 
               return ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: relatedNails.length,
+                itemCount: nails.length,
                 itemBuilder: (context, index) {
                   return Padding(
                     padding: const EdgeInsets.only(right: 16.0),
@@ -1412,7 +1414,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
     // Có thể mở màn hình chat hoặc liên kết Zalo
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Liên hệ: ${widget.store!.phone}'),
+        content: Text('Liên hệ: ${widget.store!.hotline}'),
         backgroundColor: Colors.black87,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(

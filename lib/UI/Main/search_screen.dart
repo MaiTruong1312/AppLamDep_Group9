@@ -769,7 +769,7 @@ class _SearchScreenState extends State<SearchScreen> {
             'address': store.address,
             'img_url': store.imgUrl,
             'rating': store.rating,
-            'review_count': store.reviewCount,
+            'review_count': store.reviewsCount,
             'distance': store.distance,
           },
           isSearchResult: true,
