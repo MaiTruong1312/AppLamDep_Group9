@@ -64,7 +64,7 @@ class _ArNailTryOnPageState extends State<ArNailTryOnPage>
   double nailRotation = 0.0;
   double nailOpacity = 1.0;
   Color? blendColor;
-  bool enableShadow = true;
+  bool enableShadow = false;
   bool enableGlow = false;
 
   final List<Map<String, dynamic>> _savedPresets = [];

@@ -142,7 +142,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                   // TODO: Mở chat với salon
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const ChatBotPage()),
+                    MaterialPageRoute(builder: (context) => const ChatBotPageV2()),
                   );
                 }),
                 _buildActionButton(Icons.phone_outlined, 'Call', () async {
@@ -160,13 +160,13 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                   // Chuyển sang trang bản đồ salon (tạo tạm nếu chưa có)
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const ChatBotPage()),
+                    MaterialPageRoute(builder: (context) => const ChatBotPageV2()),
                   );
                 }),
                 _buildActionButton(Icons.share_outlined, 'Share', () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const ChatBotPage()),
+                    MaterialPageRoute(builder: (context) => const ChatBotPageV2()),
                   );
                 }),
               ],

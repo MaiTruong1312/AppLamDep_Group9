@@ -169,7 +169,7 @@ class _MainLayoutState extends State<MainLayout>
         icon: Icons.message,
         label: 'Tư vấn AI',
         color: const Color(0xFF2575FC),
-        screen: const ChatBotPage(),
+        screen: const ChatBotPageV2(),
         angle: 50,
       ),
       // Danh sách đặt lịch - có badge
