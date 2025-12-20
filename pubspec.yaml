@@ -10,63 +10,62 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  table_calendar: ^3.1.2
+  url_launcher: ^6.3.0
+  local_auth: ^2.3.0
+  flutter_secure_storage: ^9.2.2
+  device_info_plus: ^10.1.0
 
-  # --- CORE ---
-  cupertino_icons: ^1.0.8
-  intl: ^0.19.0
-  http: ^1.2.2
-
-  # --- STORAGE & DEVICE ---
+  # --- CÁC GÓI TIỆN ÍCH ---
+  hand_landmarker: ^2.1.2
+  tflite_flutter: ^0.11.0
+  image: ^4.1.3
   shared_preferences: ^2.2.2
   path_provider: ^2.1.1
   permission_handler: ^11.0.0
-  flutter_secure_storage: ^9.2.2
-  device_info_plus: ^10.1.0
-  local_auth: ^2.3.0
+  intl: ^0.19.0
+  http: ^1.2.2
 
-  # --- MEDIA & FILE ---
-  image: ^4.1.3
-  image_picker: ^1.0.7
+  # --- UI & MEDIA ---
+  cupertino_icons: ^1.0.8
   gal: ^2.0.4
+  image_picker: ^1.0.7
+  country_picker: ^2.0.25
   camera: ^0.11.3
   flutter_svg: ^2.2.3
-  cached_network_image: ^3.3.1
   cloudinary_public: ^0.23.1
 
   # --- UI ---
-  table_calendar: ^3.1.2
-  country_picker: ^2.0.25
   confetti: ^0.7.0
 
-  # --- ML / AI ---
-  hand_landmarker: ^2.1.2
-  tflite_flutter: ^0.11.0
-  mediapipe_genai: ^0.0.1
-
   # --- FIREBASE ---
+  firebase_messaging: ^14.7.10
   firebase_core: ^2.4.0
   firebase_auth: ^4.20.0
   cloud_firestore: ^4.17.0
   firebase_storage: ^11.7.0
-  firebase_messaging: ^14.7.10
   google_sign_in: ^6.1.6
   flutter_facebook_auth: ^6.1.1
+  cached_network_image: ^3.3.1
 
   # --- MAP / STATE ---
   provider: ^6.1.1
   geolocator: ^10.1.0
   google_maps_flutter: ^2.5.0
 
-  # --- OTHER ---
-  url_launcher: ^6.3.0
-
 dev_dependencies:
+
   flutter_test:
     sdk: flutter
   integration_test:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_native_splash: ^2.4.0
+  provider: ^6.1.1  # Cho StoreProvider
+  geolocator: ^10.1.0  # Cho location trong StoreService
+  cached_network_image: ^3.3.1  # Cho load image trong UI
+  google_maps_flutter: ^2.5.0
+
 
 flutter:
   uses-material-design: true

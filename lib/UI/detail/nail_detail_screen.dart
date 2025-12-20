@@ -1414,7 +1414,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
     // Có thể mở màn hình chat hoặc liên kết Zalo
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Liên hệ: ${widget.store!.phone}'),
+        content: Text('Liên hệ: ${widget.store!.hotline}'),
         backgroundColor: Colors.black87,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
