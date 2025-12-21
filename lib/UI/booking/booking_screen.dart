@@ -255,14 +255,18 @@ class _BookingScreenState extends State<BookingScreen> {
                 ),
                 const SizedBox(height: 24),
                 // Voucher - nhấn vào chuyển trang
-                GestureDetector(
+                InkWell(
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const VoucherScreen()),
                     );
                   },
-                  child: _buildSectionRow('Voucher', Icons.local_offer_outlined),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: _buildSectionRow('Voucher', Icons.local_offer_outlined),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 GestureDetector(
@@ -272,7 +276,7 @@ class _BookingScreenState extends State<BookingScreen> {
                       MaterialPageRoute(builder: (context) => const PaymentMethodScreen()),
                     );
                   },
-                  child: _buildSectionRow('Payment', Icons.payment, subtitle: 'Visa'),
+                  child: _buildSectionRow('Payment', Icons.payment),
                 ),
                 const SizedBox(height: 24),
                 const Text('Note',
