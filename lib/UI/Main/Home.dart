@@ -1205,27 +1205,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          '${store.name} - ${store.address}',
-                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                          store.name, // Rút gọn lại chỉ hiện tên tiệm
+                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                      const Icon(Icons.bookmark_border, size: 22),
+                                      // THÊM: Khoảng cách hiện đại ở góc phải
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary.withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          "${store.distance.toStringAsFixed(1)} km",
+                                          style: AppTypography.textXS.copyWith(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   ),
-                                  const SizedBox(height: 6),
+                                  const SizedBox(height: 8),
                                   Row(
                                     children: [
-                                      Icon(Icons.star, color: Colors.amber.shade600, size: 18),
+                                      Icon(Icons.star, color: Colors.amber.shade600, size: 16),
                                       const SizedBox(width: 4),
-                                      Text('${store.rating}/5.0 (${store.reviewsCount ?? 0})', style: const TextStyle(fontSize: 14)),
+                                      Text(
+                                        '${store.rating} (${store.reviewsCount})',
+                                        style: const TextStyle(fontSize: 13, color: Colors.grey),
+                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 6),
+                                  // Giữ địa chỉ ở dưới cùng
                                   Text(
                                     store.address,
-                                    style: const TextStyle(color: Colors.grey, fontSize: 14),
+                                    style: const TextStyle(color: Colors.grey, fontSize: 13),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),

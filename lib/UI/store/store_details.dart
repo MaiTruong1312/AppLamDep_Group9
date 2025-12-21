@@ -10,6 +10,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'chat_screen.dart';
 
 class StoreDetails extends StatefulWidget {
   final String storeId;
@@ -130,7 +131,7 @@ class _StoreDetailsState extends State<StoreDetails> {
               ),
             ),
             _buildCustomIndicator(images.length),
-            _buildContactButtons(),
+            _buildContactButtons(store),
           ],
         ),
       ),
@@ -387,31 +388,48 @@ class _StoreDetailsState extends State<StoreDetails> {
     );
   }
 
-  Widget _buildContactButtons() {
+  Widget _buildContactButtons(Store store) {
     return Positioned(
       bottom: 15,
       left: 0, right: 0,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildIconButton(Icons.chat_bubble_outline),
+          _buildIconButton(Icons.chat_bubble_outline, () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatScreen(storeName: store.name),
+              ),
+            );
+          }),
           const SizedBox(width: 16),
-          _buildIconButton(Icons.phone_outlined),
+          _buildIconButton(Icons.phone_outlined, () {
+            _showHotlineBottomSheet(context,
+                store.hotline);
+          }),
           const SizedBox(width: 16),
-          _buildIconButton(Icons.location_on_outlined),
+          Builder(builder: (context) {
+            return _buildIconButton(Icons.location_on_outlined, () {
+              DefaultTabController.of(context).animateTo(4);
+            });
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildIconButton(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: const BoxDecoration(
-        color: Colors.white, shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
+  Widget _buildIconButton(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: const BoxDecoration(
+          color: Colors.white, shape: BoxShape.circle,
+          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
+        ),
+        child: Icon(icon, color: AppColors.primary, size: 22),
       ),
-      child: Icon(icon, color: AppColors.primary, size: 22),
     );
   }
 
@@ -423,7 +441,20 @@ class _StoreDetailsState extends State<StoreDetails> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle("Location"),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildSectionTitle("Location"),
+              // THÊM: Khoảng cách từ vị trí HVNH đến tiệm
+              Text(
+                "Away from you: ${store.distance.toStringAsFixed(1)} km",
+                style: AppTypography.textSM.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
 
           // 1. BẢN ĐỒ ĐỘNG CHÍNH XÁC
@@ -935,6 +966,65 @@ class _StoreDetailsState extends State<StoreDetails> {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+  void _showHotlineBottomSheet(BuildContext context, String phoneNumber) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent, // Để lộ bo góc phía dưới
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // Tự động co dãn theo nội dung
+          children: [
+            Text("Hotline", style: AppTypography.textXS.copyWith(color: Colors.grey)),
+            const SizedBox(height: 8),
+            Text(
+              phoneNumber.isNotEmpty ? phoneNumber : "Chưa cập nhật",
+              style: AppTypography.headlineSM.copyWith(color: AppColors.primary),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                // Nút Hủy
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      side: const BorderSide(color: Colors.grey),
+                    ),
+                    child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Nút Gọi
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Cần cài đặt thêm package url_launcher để thực hiện cuộc gọi thật
+                      Navigator.pop(context);
+                      print("Đang thực hiện cuộc gọi tới $phoneNumber");
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    child: const Text("Call", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

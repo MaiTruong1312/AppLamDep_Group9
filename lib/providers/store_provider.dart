@@ -18,62 +18,61 @@ class StoreProvider with ChangeNotifier {
   Position? get userPosition => _userPosition;
 
   // 1. Lấy tọa độ GPS của người dùng
+  // store_provider.dart
   Future<void> fetchUserLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      _error = 'Location services disabled';
-      notifyListeners();
-      return;
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        _error = 'Location permissions denied';
-        notifyListeners();
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      _error = 'Location permissions denied forever';
-      notifyListeners();
-      return;
-    }
-
-    _userPosition = await Geolocator.getCurrentPosition();
+    _isLoading = true;
     notifyListeners();
+
+    try {
+      // THIẾT LẬP VỊ TRÍ CỐ ĐỊNH TẠI HỌC VIỆN NGÂN HÀNG
+      _userPosition = Position(
+        latitude: 21.0091,
+        longitude: 105.8289,
+        timestamp: DateTime.now(),
+        accuracy: 10.0,
+        altitude: 0.0,
+        heading: 0.0,
+        speed: 0.0,
+        speedAccuracy: 0.0,
+        altitudeAccuracy: 0.0,
+        headingAccuracy: 0.0,
+      );
+
+      print("Đã xác định vị trí tại: Học viện Ngân hàng");
+    } catch (e) {
+      _error = 'Lỗi giả lập vị trí: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   // 2. Lấy danh sách tiệm và TÍNH TOÁN KHOẢNG CÁCH THỰC TẾ
   Future<void> fetchAllStores() async {
     _isLoading = true;
-    _error = null;
     notifyListeners();
-
     try {
-      // Lấy dữ liệu thô từ Service
+      // 1. Lấy danh sách tiệm từ Firebase
       List<Store> fetchedStores = await _storeService.getAllStores(userPosition: _userPosition);
 
-      // Nếu có vị trí người dùng, tiến hành tính toán
+      // 2. Nếu đã lấy được vị trí người dùng (_userPosition không null)
       if (_userPosition != null) {
         _stores = fetchedStores.map((store) {
           if (store.location != null) {
-            // Tính khoảng cách (mét) giữa 2 tọa độ GPS
+            // Tính khoảng cách từ bạn đến tiệm (trả về mét)
             double distanceInMeters = Geolocator.distanceBetween(
               _userPosition!.latitude,
               _userPosition!.longitude,
               store.location!.latitude,
               store.location!.longitude,
             );
-            // Gán giá trị km mới cho store (Dùng copyWith)
+            // Chuyển sang km và tạo bản sao mới của store bằng copyWith
             return store.copyWith(distance: distanceInMeters / 1000);
           }
           return store;
         }).toList();
 
-        // NGHIỆP VỤ: Sắp xếp các tiệm gần người dùng nhất lên đầu
+        // Sắp xếp tiệm gần nhất lên đầu
         _stores.sort((a, b) => a.distance.compareTo(b.distance));
       } else {
         _stores = fetchedStores;
