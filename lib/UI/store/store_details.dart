@@ -164,14 +164,15 @@ class _StoreDetailsState extends State<StoreDetails> {
 
   Widget _buildServiceGrid(List<Service> services) {
     const Map<String, String> iconMapping = {
-      "Hair Removal": "assets/icons/hair_removal.svg",
-      "Hair Cut": "assets/icons/hair_cut.svg",
-      "Hair Style": "assets/icons/hair_style.svg",
-      "Facial": "assets/icons/facial.svg",
-      "Massage": "assets/icons/massage.svg",
+      "Nail Art": "assets/icons/hair_removal.svg",
+      "Crystal Embellishment": "assets/icons/hair_cut.svg",
+      "Airbrush Design": "assets/icons/hair_style.svg",
+      "3d Sculpture": "assets/icons/facial.svg",
+      "Special Occasion Nails": "assets/icons/nails.svg",
       "Nails": "assets/icons/nails.svg",
-      "Makeup": "assets/icons/makeup.svg",
+      "Manicure": "assets/icons/facial.svg",
       "Med Spa": "assets/icons/med_spa.svg",
+      "Medicure": "assets/icons/massage.svg",
     };
 
     return GridView.builder(
@@ -306,11 +307,18 @@ class _StoreDetailsState extends State<StoreDetails> {
       decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 8))]
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 15,
+                offset: const Offset(0, 8)
+            )
+          ]
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 1. Hình ảnh dịch vụ (Lấy từ imageUrl trong Firebase)
           ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               child: SizedBox(
@@ -324,23 +332,38 @@ class _StoreDetailsState extends State<StoreDetails> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(service.name, style: AppTypography.textMD.copyWith(fontWeight: FontWeight.bold)),
+                // 2. Tên dịch vụ
+                Text(
+                    service.name,
+                    style: AppTypography.textMD.copyWith(fontWeight: FontWeight.bold)
+                ),
                 const SizedBox(height: 4),
-                Text("Premium beauty service with quality care.", style: AppTypography.textSM.copyWith(color: Colors.grey)),
-                const SizedBox(height: 10),
+                Text(
+                    "Premium beauty service with quality care.",
+                    style: AppTypography.textSM.copyWith(color: Colors.grey)
+                ),
+                const SizedBox(height: 12),
+
+                // 3. Thông số: Bookings & Nút đặt lịch
                 Row(
                   children: [
-                    const Icon(Icons.star, color: Colors.amber, size: 16),
-                    Text(" ${service.rating} - ${service.bookings}+ bookings", style: AppTypography.textXS),
+                    const Icon(Icons.history, color: Colors.grey, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                        "${service.bookings}+ bookings",
+                        style: AppTypography.textXS.copyWith(color: Colors.grey)
+                    ),
                     const Spacer(),
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // Logic đặt lịch
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16), // Bo góc 16px
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       ),
@@ -354,7 +377,19 @@ class _StoreDetailsState extends State<StoreDetails> {
                     )
                   ],
                 ),
-                Text("Time: ${service.duration}", style: AppTypography.textXS.copyWith(color: Colors.grey)),
+                const SizedBox(height: 8),
+
+                // 4. Thời gian thực hiện dịch vụ
+                Row(
+                  children: [
+                    const Icon(Icons.access_time, color: Colors.grey, size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                        "Time: ${service.duration}",
+                        style: AppTypography.textXS.copyWith(color: Colors.grey)
+                    ),
+                  ],
+                ),
               ],
             ),
           )

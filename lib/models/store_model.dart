@@ -33,6 +33,9 @@ class Store {
     this.viewCount = 0, this.hotline = '', this.email = '', this.website = '', this.description = '', this.distance = 0.0,
     this.isOpen = true,
   });
+  //Hàm ép kiểu
+  int safeInt(dynamic value) => int.tryParse(value.toString()) ?? 0;
+  double safeDouble(dynamic value) => double.tryParse(value.toString()) ?? 0.0;
 
   factory Store.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -120,10 +123,9 @@ class Service {
 
   factory Service.fromMap(Map<String, dynamic> map) => Service(
     name: map['name'] ?? '',
-    imageUrl: map['imageUrl'] ?? map['image_url'] ?? '',
+    imageUrl: map['imageUrl'] ?? map['image_url'] ?? '', // Xử lý cả 2 key
     duration: map['duration'] ?? '',
-    bookings: map['booking'] ?? map['bookings'] ?? 0,
-    rating: (map['rating'] as num?)?.toDouble() ?? 5.0,
+    bookings: int.tryParse(map['bookings'].toString()) ?? 0,
     price: (map['price'] as num?)?.toDouble() ?? 0.0,
   );
 }

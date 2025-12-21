@@ -73,6 +73,7 @@ flutter:
   assets:
     - assets/images/nail_designs/
     - assets/images/
+    - assets/images/services/
     - assets/hand_landmarker/
     - assets/models/hand_landmarker.task
     - assets/icons/
