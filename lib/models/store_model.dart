@@ -22,6 +22,7 @@ class Store {
   final String email;
   final String website;
   final String description;
+  final DateTime? establishedDate;
   final double distance;
   final bool isOpen;
 
@@ -32,6 +33,7 @@ class Store {
     this.reviews = const [], this.totalNails = 0, this.followerCount = 0,
     this.viewCount = 0, this.hotline = '', this.email = '', this.website = '',
     this.description = '', this.distance = 0.0, this.isOpen = true,
+    this.establishedDate,
   });
 
   factory Store.fromFirestore(DocumentSnapshot doc) {
@@ -53,6 +55,7 @@ class Store {
       email: data['email'] ?? '',
       website: data['website'] ?? '',
       description: data['description'] ?? '',
+      establishedDate: (data['establishedDate'] as Timestamp?)?.toDate(),
       // Map danh sách services
       services: (data['services'] as List<dynamic>? ?? [])
           .whereType<Map<String, dynamic>>()

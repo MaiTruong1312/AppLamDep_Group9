@@ -17,6 +17,7 @@ import 'store_tab_portfolio.dart';
 import 'store_tab_giftcard.dart';
 import 'store_tab_location.dart';
 import 'chat_screen.dart';
+import 'service_details.dart';
 
 
 
@@ -29,6 +30,7 @@ class StoreDetails extends StatefulWidget {
 }
 
 class _StoreDetailsState extends State<StoreDetails> {
+  final ScrollController _scrollController = ScrollController();
   Timer? _flashSaleTimer;
   Duration _remainingTime = const Duration(hours: 20, minutes: 0, seconds: 0);
   final PageController _headerPageController = PageController();
@@ -54,6 +56,7 @@ class _StoreDetailsState extends State<StoreDetails> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _flashSaleTimer?.cancel();
     _headerPageController.dispose();
     super.dispose();
@@ -74,6 +77,7 @@ class _StoreDetailsState extends State<StoreDetails> {
           body: DefaultTabController(
             length: 5,
             child: NestedScrollView(
+              controller: _scrollController,
               headerSliverBuilder: (context, innerBoxIsScrolled) {
                 return [
                   _buildAppBar(store),
@@ -104,7 +108,7 @@ class _StoreDetailsState extends State<StoreDetails> {
                   MostServiceTab(store: store),
                   ReviewsTab(store: store),
                   PortfolioTab(store: store),
-                  const Center(child: Text("Giftcard Content")),
+                  const Center(child: Text("Giftcard is comming soon")),
                   LocationTab(store: store),
                 ],
               ),
@@ -186,42 +190,59 @@ class _StoreDetailsState extends State<StoreDetails> {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero, // Loại bỏ padding mặc định để thu hẹp khoảng cách
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 8,
-        childAspectRatio: 0.76, // Tỷ lệ chuẩn 70x92
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 0.85, // Điều chỉnh tỷ lệ để icon to hơn, text gọn hơn
       ),
       itemCount: services.length,
       itemBuilder: (context, index) {
-        // ĐÃ SỬA: Lấy đúng thuộc tính từ object Service
         final service = services[index];
         final iconPath = iconMapping[service.name];
 
-        return Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
-                ],
+        return InkWell(
+          onTap: () {
+            // Điều hướng sang trang chi tiết dịch vụ
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ServiceDetailsScreen(service: service),
               ),
-              child: iconPath != null
-                  ? SvgPicture.asset(iconPath, colorFilter: const ColorFilter.mode(AppColors.primary, BlendMode.srcIn), width: 30, height: 30)
-                  : const Icon(Icons.spa, color: AppColors.primary, size: 30),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              service.name,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.labelSM.copyWith(fontWeight: FontWeight.w600, color: AppColors.neutral950),
-            ),
-          ],
+            );
+          },
+          child: Column(
+            children: [
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Center(
+                    child: iconPath != null
+                        ? SvgPicture.asset(iconPath,
+                        colorFilter: const ColorFilter.mode(AppColors.primary, BlendMode.srcIn),
+                        width: 32, height: 32)
+                        : const Icon(Icons.spa, color: AppColors.primary, size: 32),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                service.name,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.textXS.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.neutral950,
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -304,23 +325,32 @@ class _StoreDetailsState extends State<StoreDetails> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // Nút Chat
           _buildIconButton(Icons.chat_bubble_outline, () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ChatScreen(storeId: store.id, storeName: store.name),
-              ),
-            );
+            Navigator.push(context, MaterialPageRoute(
+                builder: (context) => ChatScreen(storeId: store.id, storeName: store.name)
+            ));
           }),
           const SizedBox(width: 16),
+          // Nút Gọi
           _buildIconButton(Icons.phone_outlined, () {
-            _showHotlineBottomSheet(context,
-                store.hotline);
+            _showHotlineBottomSheet(context, store.hotline);
           }),
           const SizedBox(width: 16),
-          Builder(builder: (context) {
+
+          // NÚT MAP: CẦN DÙNG BUILDER ĐỂ LẤY CONTEXT BÊN TRONG TABCONTROLLER
+          Builder(builder: (innerContext) {
             return _buildIconButton(Icons.location_on_outlined, () {
-              DefaultTabController.of(context).animateTo(4);
+              // 1. Chuyển sang Tab số 4 (Location) dùng innerContext
+              DefaultTabController.of(innerContext).animateTo(4);
+
+              // 2. Tự động cuộn xuống để thu gọn SliverAppBar
+              // Dùng _scrollController đã gán ở NestedScrollView
+              _scrollController.animateTo(
+                280.0, // Đúng bằng expandedHeight của SliverAppBar
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeInOut,
+              );
             });
           }),
         ],
@@ -363,56 +393,100 @@ class _StoreDetailsState extends State<StoreDetails> {
   void _showHotlineBottomSheet(BuildContext context, String phoneNumber) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent, // Để lộ bo góc phía dưới
+      backgroundColor: Colors.transparent, // Giữ nền trong suốt để thấy bo góc
+      isScrollControlled: true,
       builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)), // Bo góc sâu hơn cho hiện đại
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min, // Tự động co dãn theo nội dung
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text("Hotline", style: AppTypography.textXS.copyWith(color: Colors.grey)),
-            const SizedBox(height: 8),
-            Text(
-              phoneNumber.isNotEmpty ? phoneNumber : "Chưa cập nhật",
-              style: AppTypography.headlineSM.copyWith(color: AppColors.primary),
+            // Thanh kéo nhỏ phía trên cùng (Gợi ý UX cho người dùng)
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                // Nút Hủy
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      side: const BorderSide(color: Colors.grey),
-                    ),
-                    child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+
+            // Icon điện thoại nổi bật
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.phone_forwarded_rounded,
+                  color: AppColors.primary, size: 32),
+            ),
+            const SizedBox(height: 16),
+
+            // Tiêu đề "Tap to call"
+            Text(
+              "Tap to call",
+              style: AppTypography.labelLG.copyWith(
+                fontWeight: FontWeight.w800,
+                color: AppColors.neutral950,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Hiển thị số điện thoại lớn và rõ ràng
+            Text(
+              phoneNumber.isNotEmpty ? phoneNumber : "Not updated",
+              style: AppTypography.headlineSM.copyWith(
+                color: AppColors.primary,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Nút Gọi chính (Full width)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Thực hiện cuộc gọi thật với url_launcher
+                  Navigator.pop(context);
+                  debugPrint("Calling $phoneNumber...");
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  "Call Now",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
-                const SizedBox(width: 16),
-                // Nút Gọi
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Cần cài đặt thêm package url_launcher để thực hiện cuộc gọi thật
-                      Navigator.pop(context);
-                      print("Đang thực hiện cuộc gọi tới $phoneNumber");
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
-                    child: const Text("Call", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Nút Hủy dạng TextButton ở dưới cùng để tối giản
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: Text(
+                "Cancel",
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
+              ),
             ),
           ],
         ),
