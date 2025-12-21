@@ -3,7 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:confetti/confetti.dart';
 import 'dart:math';
-
+import 'package:provider/provider.dart';
+import '../../providers/store_provider.dart';
+import '../../models/store_model.dart';
+import '../../UI/store/store_details.dart';
+import '../../UI/store/store_list.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_typography.dart';
 import '../../models/nail_model.dart';
 import '../detail/nail_detail_screen.dart';
 import 'search_screen.dart';
@@ -43,11 +50,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(viewportFraction: 0.85);
     final User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _userName = user.displayName ?? user.email;
     }
-    _pageController = PageController(initialPage: 0, viewportFraction: 0.85);
+    final provider = Provider.of<StoreProvider>(context, listen: false);
+    provider.fetchUserLocation().then((_) => provider.fetchAllStores());
 
     _fadeAnimationController = AnimationController(
       vsync: this,
@@ -62,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
-
+    
     _confettiController = ConfettiController(duration: const Duration(seconds: 1));
 
     // Play confetti animation after a short delay
@@ -88,11 +97,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgGrey,
+      backgroundColor: _bgGrey, // Sử dụng màu nền mới
       body: Container(
         width: double.infinity,
         height: double.infinity,
         clipBehavior: Clip.antiAlias,
+        // Thêm gradient nhẹ cho nền để tạo chiều sâu cao cấp
         decoration: BoxDecoration(
             gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -114,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 physics: const BouncingScrollPhysics(),
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 24), // Tăng padding dọc
                   child: FadeTransition(
                     opacity: _fadeAnimation,
                     child: Column(
@@ -160,43 +170,40 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               left: 0,
               top: 0,
               right: 0,
-              child: GestureDetector(
-                onTap: _handleSecretTap,
-                child: Container(
-                  height: 52,
-                  decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.white.withOpacity(0.9),
-                            Colors.white.withOpacity(0.0),
-                          ]
-                      )
-                  ),
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withOpacity(0.9),
+                          Colors.white.withOpacity(0.0),
+                        ]
+                    )
                 ),
               ),
             ),
-
+            
             // --- CONGRATULATORY CONFETTI ---
             Align(
               alignment: Alignment.topCenter,
               child: ConfettiWidget(
                 confettiController: _confettiController,
-                blastDirectionality: BlastDirectionality.explosive,
+                blastDirectionality: BlastDirectionality.explosive, // Shoots in all directions
                 shouldLoop: false,
                 colors: const [
                   Colors.red, Colors.amber, Colors.blue, Colors.pinkAccent, Colors.purpleAccent, Colors.greenAccent
-                ],
-                createParticlePath: (size) {
+                ], // Brighter, more festive colors
+                createParticlePath: (size) { // Custom path for a star shape
                   final path = Path();
-                  path.addOval(Rect.fromCircle(center: Offset.zero, radius: 6));
+                  path.addOval(Rect.fromCircle(center: Offset.zero, radius: 6)); // Bigger particles
                   return path;
                 },
-                emissionFrequency: 0.02,
-                numberOfParticles: 50,
-                gravity: 0.3,
-                particleDrag: 0.05,
+                emissionFrequency: 0.02,    // Burst denser
+                numberOfParticles: 50,      // More particles for a bigger "wow"
+                gravity: 0.3,               // A bit faster
+                particleDrag: 0.05,           // Slows down particles over time
               ),
             ),
           ],
@@ -545,6 +552,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Greeting + Notification
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -572,6 +580,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ],
               ),
+
+              // Notification icon - Soft Shadow
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -579,7 +589,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withOpacity(0.08), // Shadow nhẹ hơn
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     )
@@ -589,6 +599,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ],
           ),
+
           const SizedBox(height: 24),
           GestureDetector(
             onTap: () {
@@ -673,12 +684,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+
   Widget _buildSpecialOffers() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('banners').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) return const SizedBox.shrink();
         if (snapshot.connectionState == ConnectionState.waiting) {
+          // Placeholder đẹp hơn khi loading
           return Container(
             height: 166,
             margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -709,6 +722,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+                // Horizontal Banner
                 SizedBox(
                   height: 170,
                   child: PageView.builder(
@@ -733,13 +748,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             value = (_pageController.page ?? 0) - index;
                             value = (1 - (value.abs() * 0.3)).clamp(0.0, 1.0);
                           }
+                          // Thêm opacity effect khi scale
                           final opacity = Curves.easeOut.transform((1 - (value.abs() * 0.5)).clamp(0.0, 1.0));
                           return Center(
                             child: Opacity(
                               opacity: opacity,
                               child: SizedBox(
                                 height: Curves.easeOut.transform(value) * 170,
-                                width: Curves.easeOut.transform(value) * 300,
+                                width: Curves.easeOut.transform(value) * 300, // Rộng hơn chút
                                 child: child,
                               ),
                             ),
@@ -753,7 +769,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     },
                   ),
                 ),
+
                 const SizedBox(height: 16),
+
+                // Indicators
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
@@ -769,6 +788,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  // ---------------- Banner Card (Cải tiến shadow) -------------------
   Widget _buildOfferBanner({required String image, required String percent}) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -835,6 +855,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  // Indicator dot
   Widget _indicator({bool active = false}) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -848,6 +869,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  // ============================================================
+  // ===================== MOST MONTHLY =========================
+  // ============================================================
+
   Widget _buildMostMonthly() {
     return Column(
       children: [
@@ -856,6 +881,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         SizedBox(
           height: 260,
           child: StreamBuilder<QuerySnapshot>(
+            // ... (Giữ nguyên logic StreamBuilder)
             stream: FirebaseFirestore.instance.collection('nails').orderBy('likes', descending: true).snapshots(),
             builder: (context, snapshot) {
               if (snapshot.hasError) return const Center(child: Text('Something went wrong'));
@@ -876,6 +902,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: List.generate(products.length, (index) {
                     final nail = Nail.fromFirestore(products[index]);
+                    // final store = storesMap[nail.storeId];
                     final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
                       CurvedAnimation(
                         parent: _listAnimationController,
@@ -912,6 +939,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ],
     );
   }
+
+  // ============================================================
+  // ===================== HOT TREND NAILS ======================
+  // ============================================================
 
   Widget _buildHotTrendNails() {
     return Column(
@@ -978,6 +1009,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  // ============================================================
+  // ===================== BEST CHOICE NAILS ====================
+  // ============================================================
+
   Widget _buildBestChoiceNails() {
     return Column(
       children: [
@@ -1043,68 +1078,196 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+
+  // ============================================================
+  // ==================== SALONS NEAR YOU =======================
+  // ============================================================
+
   Widget _buildSalonsNearYou() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader('Salons Near You', () {}),
-        const SizedBox(height: 16),
-        StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('stores').snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.hasError) return const Center(child: Text('Something went wrong'));
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator(color: _accentColor));
-            }
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return const Center(child: Text("No stores found"));
-            }
-
-            final stores = snapshot.data!.docs;
-
-            return ListView.builder(
-              shrinkWrap: true,
-              padding: EdgeInsets.zero,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: stores.length,
-              itemBuilder: (context, index) {
-                final storeId = stores[index].id;
-                final storeData = stores[index].data() as Map<String, dynamic>;
-                final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
-                  CurvedAnimation(
-                    parent: _listAnimationController,
-                    curve: Interval(
-                      0.7 + (0.1 * index).clamp(0.0, 0.3),
-                      1.0,
-                      curve: Curves.easeOutCubic,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Consumer<StoreProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading) {
+            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+          }
+          if (provider.error != null) {
+            return Text('Error: ${provider.error}', style: AppTypography.textSM.copyWith(color: AppColors.error500));
+          }
+          if (provider.stores.isEmpty) {
+            return const Text('No stores nearby', style: TextStyle(fontSize: 16));
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Salons Near You',
+                    style: const TextStyle(
+                      color: Color(0xFF313235),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                );
-
-                return AnimatedBuilder(
-                  animation: _listAnimationController,
-                  builder: (context, child) {
-                    return FadeTransition(
-                      opacity: animation,
-                      child: Transform.translate(
-                        offset: Offset(0.0, 50 * (1.0 - animation.value)),
-                        child: child,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const StoreList()),
+                      );
+                    },
+                    child: const Text(
+                      'See all',
+                      style: TextStyle(
+                        color: AppColors.primary500,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 280,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: provider.stores.length,
+                  itemBuilder: (context, index) {
+                    Store store = provider.stores[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => StoreDetails(storeId: store.id),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 300,
+                        margin: const EdgeInsets.only(right: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE0E2E5)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            ClipRRect(
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                              child: Builder(
+                                builder: (context) {
+                                  // Trường hợp 1: Dữ liệu là đường dẫn Asset (như bạn muốn)
+                                  if (store.imgUrl.startsWith('assets/')) {
+                                    return Image.asset(
+                                      store.imgUrl,
+                                      height: 166,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => _buildErrorImage(),
+                                    );
+                                  }
+                                  // Trường hợp 2: Dữ liệu là link mạng (để app không bị văng nếu data thay đổi)
+                                  else if (store.imgUrl.startsWith('http')) {
+                                    return Image.network(
+                                      store.imgUrl,
+                                      height: 166,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => _buildErrorImage(),
+                                    );
+                                  }
+                                  // Trường hợp 3: Fallback cuối cùng nếu không thỏa mãn cả 2 (BẮT BUỘC)
+                                  else {
+                                    return _buildErrorImage();
+                                  }
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(14.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          store.name, // Rút gọn lại chỉ hiện tên tiệm
+                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      // THÊM: Khoảng cách hiện đại ở góc phải
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary.withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          "${store.distance.toStringAsFixed(1)} km",
+                                          style: AppTypography.textXS.copyWith(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.star, color: Colors.amber.shade600, size: 16),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${store.rating} (${store.reviewsCount})',
+                                        style: const TextStyle(fontSize: 13, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  // Giữ địa chỉ ở dưới cùng
+                                  Text(
+                                    store.address,
+                                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                    child: StoreCard(
-                      storeId: storeId,
-                      storeData: storeData,
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+  Widget _buildErrorImage() {
+    return Container(
+      height: 166,
+      color: Colors.grey.shade200,
+      child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
     );
   }
 }

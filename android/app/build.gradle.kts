@@ -25,6 +25,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders.putAll(mapOf("com.google.android.geo.API_KEY" to "YOUR_KEY"))
     }
 
     buildTypes {

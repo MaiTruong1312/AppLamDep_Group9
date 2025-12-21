@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:applamdep/UI/Login/signin_screen.dart';
 import 'package:applamdep/UI/Login/signup_screen.dart';
+// Import các thư viện cần thiết để xử lý đăng nhập
+import 'package:applamdep/services/auth_service.dart';
+import 'package:applamdep/UI/main_layout.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class MainLoginScreen extends StatelessWidget {
+class MainLoginScreen extends StatefulWidget {
   const MainLoginScreen({super.key});
+
+  @override
+  State<MainLoginScreen> createState() => _MainLoginScreenState();
+}
+
+class _MainLoginScreenState extends State<MainLoginScreen> {
+  // Khởi tạo AuthService để sử dụng các hàm đăng nhập mạng xã hội
+  final AuthService _authService = AuthService();
 
   // Định nghĩa màu sắc để dễ dàng tái sử dụng
   static const Color backgroundColor = Color(0xFFF5F5F5);
@@ -14,22 +27,50 @@ class MainLoginScreen extends StatelessWidget {
   static const Color textButtonPink = Color(0xFFBB1549);
   static const Color borderColor = Color(0xFFE0E2E5);
 
+  // Logic xử lý đăng nhập bằng mạng xã hội tương tự signin_screen.dart
+  void _socialSignInHandler(Future<User?> signInFuture) async {
+    final user = await signInFuture;
+
+    if (user != null) {
+      // Lưu trạng thái đăng nhập vào SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', true);
+
+      // Điều hướng đến màn hình chính và xóa lịch sử navigation
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const MainLayout()),
+              (Route<dynamic> route) => false,
+        );
+      }
+    } else {
+      // Thông báo lỗi nếu đăng nhập thất bại
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đăng nhập không thành công hoặc bị hủy.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
         child: Padding(
-          // Thêm padding cho toàn bộ màn hình
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Spacer(flex: 2), // Đẩy nội dung xuống
-              // 1. Logo (Placeholder)
+              const Spacer(flex: 2),
+              // 1. Logo
               Image.asset(
-                'assets/images/logo_placeholder.png', // Thay thế bằng đường dẫn logo của bạn
+                'assets/images/logo_placeholder.png',
                 height: 80,
                 width: 62,
                 errorBuilder: (context, error, stackTrace) {
@@ -75,19 +116,21 @@ class MainLoginScreen extends StatelessWidget {
               ),
               const SizedBox(height: 40),
 
-              // 4. Các nút Đăng nhập xã hội
+              // 4. Các nút Đăng nhập xã hội (Đã cập nhật logic)
               _buildSocialButton(
                 text: 'Continue with Google',
                 iconPath: 'assets/images/google_icon.png',
                 onPressed: () {
-                  // TODO: Xử lý đăng nhập Google
+                  _socialSignInHandler(_authService.signInWithGoogle());
                 },
               ),
               const SizedBox(height: 20),
               _buildSocialButton(
                 text: 'Continue with Facebook',
                 iconPath: 'assets/images/facebook_icon.png',
-                onPressed: () {},
+                onPressed: () {
+                  _socialSignInHandler(_authService.signInWithFacebook());
+                },
               ),
               const SizedBox(height: 40),
 
@@ -113,11 +156,9 @@ class MainLoginScreen extends StatelessWidget {
                   'Sign up',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white,
                     fontSize: 16,
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w600,
-                    height: 1.25,
                   ),
                 ),
               ),
@@ -140,67 +181,42 @@ class MainLoginScreen extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(40),
                   ),
-                  elevation: 0, // Không có đổ bóng
+                  elevation: 0,
                 ),
                 child: const Text(
                   'Sign in',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: textButtonPink,
                     fontSize: 16,
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w600,
-                    height: 1.25,
                   ),
                 ),
               ),
 
-              const Spacer(flex: 3), // Đẩy text cuối trang xuống
+              const Spacer(flex: 3),
               // 7. Privacy & Terms
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   TextButton(
-                    onPressed: () {
-                      /* TODO: Mở Privacy Policy */
-                    },
+                    onPressed: () {},
                     child: const Text(
                       'Privacy Policy',
-                      style: TextStyle(
-                        color: textSecondary,
-                        fontSize: 14,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                        height: 1.14,
-                      ),
+                      style: TextStyle(color: textSecondary, fontSize: 14),
                     ),
                   ),
-                  const Text(
-                    '•',
-                    style: TextStyle(
-                      color: Color(0xFF65686E),
-                      fontSize: 14,
-                      fontFamily: 'Urbanist', // Lưu ý: font này khác 'Inter'
-                    ),
-                  ),
+                  const Text('•', style: TextStyle(color: Color(0xFF65686E))),
                   TextButton(
-                    onPressed: () {
-                      /* TODO: Mở Terms of Service */
-                    },
+                    onPressed: () {},
                     child: const Text(
                       'Terms of Service',
-                      style: TextStyle(
-                        color: textSecondary,
-                        fontSize: 14,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                        height: 1.14,
-                      ),
+                      style: TextStyle(color: textSecondary, fontSize: 14),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16), // Đệm cho thanh home
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -217,37 +233,34 @@ class MainLoginScreen extends StatelessWidget {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: backgroundColor,
+        backgroundColor: Colors.white,
         foregroundColor: textPrimary,
         padding: const EdgeInsets.all(16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(40),
           side: const BorderSide(color: borderColor, width: 1),
         ),
-        elevation: 0, // Không đổ bóng
+        elevation: 0,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Icon (Placeholder)
           Image.asset(
             iconPath,
             width: 24,
             height: 24,
             errorBuilder: (context, error, stackTrace) {
-              return const Icon(Icons.login, size: 24); // Icon dự phòng
+              return const Icon(Icons.login, size: 24);
             },
           ),
           const SizedBox(width: 20),
           Text(
             text,
-            textAlign: TextAlign.center,
             style: const TextStyle(
               color: textPrimary,
               fontSize: 16,
               fontFamily: 'Inter',
               fontWeight: FontWeight.w600,
-              height: 1.25,
             ),
           ),
         ],

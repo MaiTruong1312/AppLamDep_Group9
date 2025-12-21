@@ -1,5 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:applamdep/models/nail_model.dart';
+import 'package:applamdep/models/store_model.dart';
+import 'package:applamdep/UI/detail/nail_detail_screen.dart';
+import 'package:applamdep/widgets/nail_card.dart';
 
 class CollectionScreen extends StatefulWidget {
   const CollectionScreen({Key? key}) : super(key: key);
@@ -13,7 +18,8 @@ class _CollectionScreenState extends State<CollectionScreen> {
   late Stream<QuerySnapshot> _bannersStream;
   late Stream<QuerySnapshot> _nailsStream;
   late PageController _bannerPageController;
-  late Future<Map<String, String>> _storesFuture;
+  late Future<Map<String, Store>> _storesFuture;
+  final User? _currentUser = FirebaseAuth.instance.currentUser;
 
   final List<String> categories = [
     "Basic",
@@ -27,19 +33,118 @@ class _CollectionScreenState extends State<CollectionScreen> {
     super.initState();
     _bannersStream =
         FirebaseFirestore.instance.collection('banners').snapshots();
-    _nailsStream = FirebaseFirestore.instance.collection('nails').snapshots();
+    _nailsStream = FirebaseFirestore.instance
+        .collection('nails')
+        .where('is_active', isEqualTo: true)
+        .snapshots();
     _bannerPageController = PageController(viewportFraction: 0.84);
     _storesFuture = _loadStores();
   }
 
-  Future<Map<String, String>> _loadStores() async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection('stores').get();
-    final storesMap = <String, String>{};
-    for (var doc in snapshot.docs) {
-      storesMap[doc.id] = (doc.data()['name'] as String? ?? 'Unknown Store');
+  Future<Map<String, Store>> _loadStores() async {
+    try {
+      final QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('stores')
+          .get(const GetOptions(source: Source.serverAndCache));
+
+      if (snapshot.docs.isEmpty) {
+        return {}; // Trả về map rỗng
+      }
+
+      final storesMap = <String, Store>{};
+
+      for (var doc in snapshot.docs) {
+        try {
+          storesMap[doc.id] = Store.fromFirestore(doc);
+        } catch (e) {
+          // Bỏ qua document lỗi hoặc tạo store mặc định
+        }
+      }
+
+      return storesMap;
+
+    } catch (e) {
+      // Trả về map rỗng để UI không bị crash
+      return {};
     }
-    return storesMap;
+  }
+
+  // Hàm toggle wishlist
+  Future<void> _toggleWishlist(String nailId, String nailName, int price, String imgUrl) async {
+    if (_currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng đăng nhập để thêm vào yêu thích'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final firestore = FirebaseFirestore.instance;
+    final nailRef = firestore.collection('nails').doc(nailId);
+    final wishlistDocId = '${_currentUser!.uid}_$nailId';
+    final wishlistRef = firestore.collection('wishlist_nail').doc(wishlistDocId);
+
+    try {
+      await firestore.runTransaction((transaction) async {
+        final wishlistSnapshot = await transaction.get(wishlistRef);
+        final nailSnapshot = await transaction.get(nailRef);
+
+        if (!nailSnapshot.exists) return;
+
+        int currentLikes = nailSnapshot.data()?['likes'] ?? 0;
+
+        if (wishlistSnapshot.exists) {
+          transaction.delete(wishlistRef);
+          transaction.update(nailRef, {'likes': currentLikes - 1});
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đã xóa khỏi yêu thích')),
+          );
+        } else {
+          transaction.set(wishlistRef, {
+            'user_id': _currentUser!.uid,
+            'nail_id': nailId,
+            'created_at': FieldValue.serverTimestamp(),
+            'name': nailName,
+            'price': price,
+            'img_url': imgUrl,
+          });
+          transaction.update(nailRef, {'likes': currentLikes + 1});
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đã thêm vào yêu thích')),
+          );
+        }
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Có lỗi xảy ra')),
+      );
+    }
+  }
+
+  // Hàm check wishlist status
+  Stream<bool> _isNailInWishlist(String nailId) {
+    if (_currentUser == null) return Stream.value(false);
+
+    return FirebaseFirestore.instance
+        .collection('wishlist_nail')
+        .doc('${_currentUser!.uid}_$nailId')
+        .snapshots()
+        .map((snapshot) => snapshot.exists);
+  }
+
+  // Hàm xem chi tiết sản phẩm
+  void _viewNailDetail(Nail nail, Store? store) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NailDetailScreen(
+          nail: nail,
+          store: store,
+        ),
+      ),
+    );
   }
 
   @override
@@ -52,46 +157,66 @@ class _CollectionScreenState extends State<CollectionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      body: FutureBuilder<Map<String, String>>(
-          future: _storesFuture,
-          builder: (context, storeSnapshot) {
-            if (storeSnapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      body: FutureBuilder<Map<String, Store>>(
+        future: _storesFuture,
+        builder: (context, storeSnapshot) {
+          if (storeSnapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            if (storeSnapshot.hasError) {
-              return const Center(child: Text('Failed to load store data.'));
-            }
+          if (storeSnapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Lỗi: ${storeSnapshot.error}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => setState(() {
+                      _storesFuture = _loadStores();
+                    }),
+                    child: const Text('Thử lại'),
+                  ),
+                ],
+              ),
+            );
+          }
 
-            if (!storeSnapshot.hasData || storeSnapshot.data!.isEmpty) {
-              return const Center(child: Text('No stores found.'));
-            }
+          final storesMap = storeSnapshot.data ?? {};
 
-            final storesMap = storeSnapshot.data!;
-
-            return Stack(
-              children: [
-                SafeArea(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        _buildHeader(),
-                        const SizedBox(height: 10),
-                        _buildBannersFromFirestore(),
-                        const SizedBox(height: 20),
-                        _buildSearchBox(),
-                        const SizedBox(height: 16),
-                        _buildCategories(),
-                        const SizedBox(height: 20),
-                        _buildNailGrid(storesMap),
-                        const SizedBox(height: 120),
-                      ],
-                    ),
+          // Vẫn hiển thị UI ngay cả khi không có stores
+          return Stack(
+            children: [
+              SafeArea(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildHeader(),
+                      const SizedBox(height: 10),
+                      _buildBannersFromFirestore(),
+                      const SizedBox(height: 20),
+                      _buildSearchBox(),
+                      const SizedBox(height: 16),
+                      _buildCategories(),
+                      const SizedBox(height: 20),
+                      storesMap.isEmpty
+                          ? _buildNoStoresUI()
+                          : _buildNailGrid(storesMap),
+                      const SizedBox(height: 120),
+                    ],
                   ),
                 ),
-              ],
-            );
-          }),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -101,7 +226,10 @@ class _CollectionScreenState extends State<CollectionScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: Row(
         children: [
-          const Icon(Icons.arrow_back_ios, size: 22),
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios, size: 22),
+            onPressed: () => Navigator.pop(context),
+          ),
           const Expanded(
             child: Text(
               "Collection",
@@ -155,13 +283,12 @@ class _CollectionScreenState extends State<CollectionScreen> {
                 },
                 itemBuilder: (context, index) {
                   final data =
-                      bannerDocs[index].data() as Map<String, dynamic>;
+                  bannerDocs[index].data() as Map<String, dynamic>;
                   final title = data['title'] as String? ?? 'No Title';
                   final subtitle =
                       data['subtitle'] as String? ?? 'No Subtitle';
                   final desc = data['desc'] as String? ?? 'No Description';
-                  final img = data['image_url']
-                      as String? ?? ''; // Assuming image_url in Firestore
+                  final img = data['image_url'] as String? ?? 'assets/images/banner1.png';
 
                   return _buildSingleBanner(
                     title: title,
@@ -177,7 +304,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
                 bannerDocs.length,
-                (index) => AnimatedContainer(
+                    (index) => AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   width: currentBanner == index ? 28 : 8,
@@ -196,6 +323,35 @@ class _CollectionScreenState extends State<CollectionScreen> {
       },
     );
   }
+//Không build gì để xem log lỗi
+  Widget _buildNoStoresUI() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          const Icon(Icons.store_outlined, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text(
+            'Không tìm thấy thông tin cửa hàng',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Vui lòng kiểm tra kết nối hoặc thử lại sau',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => setState(() {
+              _storesFuture = _loadStores();
+            }),
+            child: const Text('Tải lại'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildSingleBanner({
     required String title,
@@ -203,87 +359,127 @@ class _CollectionScreenState extends State<CollectionScreen> {
     required String desc,
     required String img,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(right: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        image: DecorationImage(image: AssetImage(img), fit: BoxFit.cover),
-      ),
-      child: Stack(
-        children: [
-          Container(
-            width: 160,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF25278),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                bottomLeft: Radius.circular(20),
+    return GestureDetector(
+      onTap: () {
+        // Có thể thêm navigation khi nhấn banner
+      },
+      child: Container(
+        margin: const EdgeInsets.only(right: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          image: DecorationImage(
+            image: img.startsWith('http')
+                ? NetworkImage(img) as ImageProvider
+                : AssetImage(img),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Stack(
+          children: [
+            Container(
+              width: 160,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Color(0xFFF25278),
+                    // Color(0xFFF25278).withOpacity(0.8),
+                  ],
+                ),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  bottomLeft: Radius.circular(20),
+                ),
               ),
             ),
-          ),
-          Positioned(
-            left: 24,
-            top: 28,
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 24,
-            top: 62,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              color: Colors.white,
+            Positioned(
+              left: 24,
+              top: 28,
               child: Text(
-                subtitle,
-                style: const TextStyle(fontSize: 9, color: Colors.black),
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
-          Positioned(
-            left: 24,
-            top: 90,
-            right: 20,
-            child: Text(
-              desc,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 9,
+            Positioned(
+              left: 24,
+              top: 62,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.black,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
+            Positioned(
+              left: 24,
+              top: 90,
+              right: 20,
+              child: Text(
+                desc,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  height: 1.4,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   // SEARCH BOX
   Widget _buildSearchBox() {
-    return Container(
-      width: 360,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEEF0F1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      height: 58,
-      child: Row(
-        children: const [
-          Icon(Icons.search, size: 22, color: Color(0xFFB8BCC1)),
-          SizedBox(width: 12),
-          Text(
-            "Search a nail design",
-            style: TextStyle(
-              color: Color(0xFFB8BCC1),
-              fontSize: 17,
+    return GestureDetector(
+      onTap: () {
+        // Navigate to search screen
+        // Navigator.push(context, MaterialPageRoute(builder: (context) => SearchScreen()));
+      },
+      child: Container(
+        width: 360,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
-        ],
+          ],
+        ),
+        height: 58,
+        child: Row(
+          children: const [
+            Icon(Icons.search, size: 22, color: Color(0xFFB8BCC1)),
+            SizedBox(width: 12),
+            Text(
+              "Search a nail design",
+              style: TextStyle(
+                color: Color(0xFFB8BCC1),
+                fontSize: 17,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -308,195 +504,118 @@ class _CollectionScreenState extends State<CollectionScreen> {
   }
 
   Widget _buildFilterButton() {
-    return Container(
-      height: 40,
-      width: 40,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+    return GestureDetector(
+      onTap: () {
+        // Show filter dialog
+      },
+      child: Container(
+        height: 40,
+        width: 40,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Icon(Icons.filter_alt_outlined, color: Color(0xFFF25278)),
       ),
-      child: const Icon(Icons.filter_alt_outlined),
     );
   }
 
   Widget _buildCategoryItem(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 16,
-          color: Colors.black,
+    return GestureDetector(
+      onTap: () {
+        // Filter by category
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black,
+          ),
         ),
       ),
     );
   }
 
   // GRID NAIL ITEMS
-  Widget _buildNailGrid(Map<String, String> storesMap) {
+  Widget _buildNailGrid(Map<String, Store> storesMap) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: StreamBuilder<QuerySnapshot>(
         stream: _nailsStream,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(child: Text('Something went wrong'));
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
           }
 
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const SizedBox.shrink();
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('No nails found.'));
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.brush, size: 60, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No nail designs found',
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                  ),
+                ],
+              ),
+            );
           }
+
+          final nails = snapshot.data!.docs
+              .map((doc) => Nail.fromFirestore(doc))
+              .toList();
 
           return GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: snapshot.data!.docs.length,
+            itemCount: nails.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 0.72,
+              mainAxisExtent: 280,
             ),
             itemBuilder: (context, index) {
-              final doc = snapshot.data!.docs[index];
-              final data = doc.data() as Map<String, dynamic>;
-
-              final title = data['name'] as String? ?? 'No Name';
-              final likes = (data['likes'] as num? ?? 0).toString();
-              final img = data['img_url'] as String? ?? '';
-              final storeId = data['store_id'] as String? ?? '';
-
-              return _buildNailCard(
-                title: title,
-                storeId: storeId,
-                likes: likes,
-                img: img,
-                storesMap: storesMap,
+              final nail = nails[index];
+              final store = storesMap[nail.storeId];
+              return NailCard(
+                nail: nail,
+                store: store,
+                onAddedToBookingCart: () {},
               );
             },
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildNailCard({
-    required String title,
-    required String storeId,
-    required String likes,
-    required String img,
-    required Map<String, String> storesMap,
-  }) {
-    final storeName = storesMap[storeId] ?? 'Unknown Store';
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {}, // For ripple effect
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF6F6F7),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: img.isNotEmpty
-                        ? Image.asset(
-                            img,
-                            width: double.infinity,
-                            height: 135,
-                            fit: BoxFit.cover,
-                          )
-                        : Container(
-                            width: double.infinity,
-                            height: 140,
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.image_not_supported),
-                          ),
-                  ),
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Icon(Icons.favorite_border,
-                          size: 16, color: Color(0xFFF25278)),
-                    ),
-                  ),
-                ],
-              ),
-              // const SizedBox(height: 5),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF313235),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const Spacer(), // Use Spacer to push the bottom row down
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                      child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        storeName,
-                        style: const TextStyle(
-                            fontSize: 12, color: Color(0xFF67686B)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          const Icon(Icons.favorite,
-                              size: 14, color: Color(0xFFF25278)),
-                          const SizedBox(width: 2),
-                          Text(
-                            likes,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF313235),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  )),
-                  const Icon(Icons.add_circle,
-                      size: 24, color: Color(0xFFF25278)),
-                ],
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

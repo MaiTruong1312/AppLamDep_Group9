@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:applamdep/UI/booking/booking_screen.dart';
+import 'package:applamdep/UI/booking/main_booking_screen.dart';
 
 class MyBookingScreen extends StatefulWidget {
   const MyBookingScreen({Key? key}) : super(key: key);
@@ -93,7 +94,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const BookingScreen(),
+                          builder: (context) => const MainBookingScreen(),
                         ),
                       );
                     },
