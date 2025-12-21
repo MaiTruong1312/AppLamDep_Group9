@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'review_model.dart';
+import 'service_model.dart'; // Import model Service chuẩn
 
 class Store {
   final String id;
@@ -10,7 +11,7 @@ class Store {
   final Map<String, dynamic> openingHours;
   final double rating;
   final int reviewsCount;
-  final List<Service> services;
+  final List<Service> services; // Dùng Service chuẩn
   final List<Flashsale> flashsales;
   final List<String> portfolio;
   final List<Review> reviews;
@@ -24,18 +25,14 @@ class Store {
   final double distance;
   final bool isOpen;
 
-
   Store({
     required this.id, required this.name, required this.address, required this.imgUrl,
     this.location, this.openingHours = const {}, this.rating = 0.0, this.reviewsCount = 0,
     this.services = const [], this.flashsales = const [], this.portfolio = const [],
     this.reviews = const [], this.totalNails = 0, this.followerCount = 0,
-    this.viewCount = 0, this.hotline = '', this.email = '', this.website = '', this.description = '', this.distance = 0.0,
-    this.isOpen = true,
+    this.viewCount = 0, this.hotline = '', this.email = '', this.website = '',
+    this.description = '', this.distance = 0.0, this.isOpen = true,
   });
-  //Hàm ép kiểu
-  int safeInt(dynamic value) => int.tryParse(value.toString()) ?? 0;
-  double safeDouble(dynamic value) => double.tryParse(value.toString()) ?? 0.0;
 
   factory Store.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -47,15 +44,16 @@ class Store {
       location: data['location'] as GeoPoint?,
       openingHours: data['opening_hours'] is Map ? data['opening_hours'] : {},
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
-      reviewsCount: data['review_count'] as int? ?? 0,
-      totalNails: data['total_nails'] as int? ?? 0,
-      followerCount: data['follower_count'] as int? ?? 0,
-      viewCount: data['view_count'] as int? ?? 0,
+      reviewsCount: data['review_count'] ?? 0,
+      totalNails: data['total_nails'] ?? 0,
+      followerCount: data['follower_count'] ?? 0,
+      viewCount: data['view_count'] ?? 0,
       portfolio: List<String>.from(data['portfolio'] ?? []),
-      hotline: data['hotline'] ?? data['phone'] ?? '', // Xử lý cả 2 key
+      hotline: data['hotline'] ?? data['phone'] ?? '',
       email: data['email'] ?? '',
       website: data['website'] ?? '',
       description: data['description'] ?? '',
+      // Map danh sách services
       services: (data['services'] as List<dynamic>? ?? [])
           .whereType<Map<String, dynamic>>()
           .map((s) => Service.fromMap(s)).toList(),
@@ -68,28 +66,15 @@ class Store {
       isOpen: data['is_open'] ?? true,
     );
   }
+
   Store copyWith({double? distance}) {
     return Store(
-      id: id,
-      name: name,
-      address: address,
-      imgUrl: imgUrl,
-      location: location,
-      openingHours: openingHours,
-      rating: rating,
-      reviewsCount: reviewsCount,
-      services: services,
-      flashsales: flashsales,
-      portfolio: portfolio,
-      reviews: reviews,
-      totalNails: totalNails,
-      followerCount: followerCount,
-      viewCount: viewCount,
-      hotline: hotline,
-      email: email,
-      website: website,
-      description: description,
-      distance: distance ?? this.distance, // Gán khoảng cách mới nếu có
+      id: id, name: name, address: address, imgUrl: imgUrl, location: location,
+      openingHours: openingHours, rating: rating, reviewsCount: reviewsCount,
+      services: services, flashsales: flashsales, portfolio: portfolio,
+      reviews: reviews, totalNails: totalNails, followerCount: followerCount,
+      viewCount: viewCount, hotline: hotline, email: email, website: website,
+      description: description, distance: distance ?? this.distance, isOpen: isOpen,
     );
   }
 }
@@ -105,27 +90,5 @@ class Flashsale {
     title: map['title'] ?? '',
     imageUrl: map['imageUrl'] ?? map['image_url'] ?? '',
     discount: (map['discount'] as num?)?.toDouble() ?? 0.0,
-  );
-}
-
-class Service {
-  final String name;
-  final String imageUrl;
-  final String duration;
-  final double rating;
-  final int bookings;
-  final double price;
-
-  Service({
-    required this.name, required this.imageUrl, required this.duration,
-    required this.price, this.rating = 5.0, this.bookings = 0,
-  });
-
-  factory Service.fromMap(Map<String, dynamic> map) => Service(
-    name: map['name'] ?? '',
-    imageUrl: map['imageUrl'] ?? map['image_url'] ?? '', // Xử lý cả 2 key
-    duration: map['duration'] ?? '',
-    bookings: int.tryParse(map['bookings'].toString()) ?? 0,
-    price: (map['price'] as num?)?.toDouble() ?? 0.0,
   );
 }

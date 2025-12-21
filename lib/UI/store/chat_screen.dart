@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../models/store_model.dart';
+import '../../models/service_model.dart';
 
 class ChatScreen extends StatefulWidget {
   final String storeId;
@@ -272,7 +273,10 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             if (_isWriting) IconButton(icon: const Icon(Icons.send, color: Color(0xFFF25278)), onPressed: () => _handleSend(_messageController.text))
             else ...[
-              _buildInputIcon(Icons.mic_none_outlined), _buildInputIcon(Icons.image_outlined), _buildInputIcon(Icons.sentiment_satisfied_alt_outlined), _buildInputIcon(Icons.add_circle_outline),
+              _buildInputIcon(Icons.mic_none_outlined, AppColors.neutral950),
+              _buildInputIcon(Icons.image_outlined, AppColors.neutral950),
+              _buildInputIcon(Icons.sentiment_satisfied_alt_outlined, AppColors.neutral950),
+              _buildInputIcon(Icons.add_circle_outline, AppColors.neutral950),
             ],
             const SizedBox(width: 8),
           ],
@@ -281,7 +285,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _inputIcon(IconData icon, Color color, {bool isCircular = false}) {
+  Widget _buildInputIcon(IconData icon, Color color, {bool isCircular = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: isCircular
