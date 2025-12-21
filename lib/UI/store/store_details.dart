@@ -395,26 +395,20 @@ class _StoreDetailsState extends State<StoreDetails> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // NÚT CHAT: Đã thêm storeId bắt buộc
           _buildIconButton(Icons.chat_bubble_outline, () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => ChatScreen(
-                  storeId: store.id,
-                  storeName: store.name,
-                  sampleServices: store.services, // Phải có dòng này!
-                ),
+                builder: (context) => ChatScreen(storeName: store.name),
               ),
             );
           }),
           const SizedBox(width: 16),
-          // NÚT HOTLINE: Truyền store.hotline đúng logic
           _buildIconButton(Icons.phone_outlined, () {
-            _showHotlineBottomSheet(context, store.hotline);
+            _showHotlineBottomSheet(context,
+                store.hotline);
           }),
           const SizedBox(width: 16),
-          // NÚT VỊ TRÍ: Chuyển tab Contact (Index 4)
           Builder(builder: (context) {
             return _buildIconButton(Icons.location_on_outlined, () {
               DefaultTabController.of(context).animateTo(4);
