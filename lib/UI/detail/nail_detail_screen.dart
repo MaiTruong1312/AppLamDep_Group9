@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:applamdep/UI/booking/booking_screen.dart';
+import 'package:applamdep/UI/store/store_details.dart';
 class NailDetailScreen extends StatefulWidget {
   final Nail nail;
   final Store? store;
@@ -865,7 +866,14 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
               ),
             ),
             OutlinedButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StoreDetails(storeId: store.id),
+                  ),
+                );
+              },
               child: Text('Xem cửa hàng'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.pink,
@@ -1344,7 +1352,11 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
 
   Widget _buildBookingBar() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.only(
+        left: 20,
+        right: 20,
+        bottom: 25,
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       height: 45,
       decoration: BoxDecoration(
@@ -1506,7 +1518,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            '${NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(widget.nail.price)}',
+            '${NumberFormat.currency(locale: 'en_US', symbol: '\$').format(widget.nail.price)}',
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,

@@ -23,6 +23,10 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
     decimalDigits: 0,
   );
 
+  // Lưu trữ tạm thời cho UI
+  Map<String, List<BookingCartItem>>? _groupedByStore;
+  int _storeCount = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,57 +59,104 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
       ),
       body: Column(
         children: [
-          // Header với số lượng
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F9FA),
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[200]!),
-              ),
-            ),
-            child: StreamBuilder<int>(
-              stream: _bookingCartService.getBookingCartItemCount(),
-              builder: (context, snapshot) {
-                final count = snapshot.data ?? 0;
-                return Row(
-                  children: [
-                    const Icon(
-                      Icons.calendar_today,
-                      color: Color(0xFFF25278),
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Mẫu nail đã chọn',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[800],
-                            ),
-                          ),
-                          Text(
-                            '$count mẫu',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
+          // Header với thông tin chi tiết
+          _buildHeader(),
+
+          // Cảnh báo đa cửa hàng (nếu có)
+          StreamBuilder<List<BookingCartItem>>(
+            stream: _bookingCartService.getBookingCartItems(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                final items = snapshot.data!;
+                final grouped = _groupItemsByStore(items);
+                final storeCount = grouped.length;
+
+                if (storeCount > 1) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _storeCount = storeCount;
+                    _groupedByStore = grouped;
+                  });
+
+                  return _buildMultiStoreWarning(storeCount);
+                }
+              }
+              return const SizedBox();
+            },
+          ),
+
+          // Danh sách mẫu nail
+          Expanded(
+            child: _buildNailList(),
+          ),
+
+          // Nút tiếp tục
+          _buildBottomActionBar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        border: Border(
+          bottom: BorderSide(color: Colors.grey[200]!),
+        ),
+      ),
+      child: StreamBuilder<List<BookingCartItem>>(
+        stream: _bookingCartService.getBookingCartItems(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            final items = snapshot.data!;
+            final count = items.length;
+
+            if (count > 0) {
+              final grouped = _groupItemsByStore(items);
+              final storeCount = grouped.length;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today,
+                        color: Color(0xFFF25278),
+                        size: 24,
                       ),
-                    ),
-                    if (count > 0)
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Mẫu nail đã chọn',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                            Text(
+                              '$count mẫu từ $storeCount cửa hàng',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: storeCount > 1 ? Colors.orange : Colors.grey,
+                                fontWeight: storeCount > 1 ? FontWeight.w600 : FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF25278),
+                          color: storeCount > 1 ? Colors.orange : const Color(0xFFF25278),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -116,19 +167,115 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                           ),
                         ),
                       ),
+                    ],
+                  ),
+                  if (storeCount > 1) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 16, color: Colors.orange[700]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Mỗi cửa hàng chỉ làm mẫu của họ. Vui lòng đặt riêng từng cửa hàng.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange[700],
+                            ),
+                            maxLines: 2,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
-                );
-              },
+                ],
+              );
+            }
+          }
+
+          // Default header khi không có data hoặc đang loading
+          return Row(
+            children: [
+              const Icon(
+                Icons.calendar_today,
+                color: Color(0xFFF25278),
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Mẫu nail đã chọn',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    Text(
+                      '0 mẫu',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMultiStoreWarning(int storeCount) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: Colors.orange[50],
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber, color: Colors.orange[700], size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Đang chọn từ $storeCount cửa hàng',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.orange[800],
+                  ),
+                ),
+                Text(
+                  'Mỗi cửa hàng cần đặt lịch riêng',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.orange[700],
+                  ),
+                ),
+              ],
             ),
           ),
-
-          // Danh sách mẫu nail
-          Expanded(
-            child: _buildNailList(),
+          TextButton(
+            onPressed: _showStoreGroupingDialog,
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(50, 30),
+            ),
+            child: Text(
+              'Xem chi tiết',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange[800],
+              ),
+            ),
           ),
-
-          // Nút tiếp tục
-          _buildBottomActionBar(),
         ],
       ),
     );
@@ -157,15 +304,114 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
           return _buildEmptyState();
         }
 
+        // Nhóm items theo store để hiển thị
+        final groupedItems = _groupItemsByStore(items);
+
         return ListView.separated(
           padding: const EdgeInsets.all(16),
-          itemCount: items.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemCount: groupedItems.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 20),
           itemBuilder: (context, index) {
-            return _buildNailCard(items[index]);
+            final storeId = groupedItems.keys.elementAt(index);
+            final storeItems = groupedItems[storeId]!;
+            final storeName = storeItems.first.storeName;
+
+            return _buildStoreSection(storeId, storeName, storeItems);
           },
         );
       },
+    );
+  }
+
+  Widget _buildStoreSection(String storeId, String storeName, List<BookingCartItem> items) {
+    final totalPrice = items.fold(0.0, (sum, item) => sum + item.price);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Store header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.store, color: Color(0xFFF25278), size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  storeName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                '${items.length} mẫu',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFFF25278),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Store items
+        Column(
+          children: items.map((item) => _buildNailCard(item)).toList(),
+        ),
+
+        // Store summary
+        Container(
+          margin: const EdgeInsets.only(top: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF5F7),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ElevatedButton(
+                onPressed: () => _proceedWithStore(storeId, items),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF25278),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.calendar_today, size: 16),
+                    SizedBox(width: 6),
+                    Text('Đặt lịch cửa hàng này'),
+                  ],
+                ),
+              ),
+              Text(
+                _currencyFormat.format(totalPrice),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFF25278),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -175,6 +421,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
+      margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: () {
           final nail = Nail(
@@ -201,47 +448,18 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Hình ảnh (Đã sửa)
+              // Hiển thị ảnh local asset
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  item.nailImage,
+                child: Container(
                   width: 80,
                   height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    // Widget hiển thị khi có lỗi
-                    return Container(
-                      width: 80,
-                      height: 80,
-                      color: Colors.grey[200],
-                      child: const Icon(
-                        Icons.broken_image,
-                        color: Colors.grey,
-                        size: 40,
-                      ),
-                    );
-                  },
-                  loadingBuilder: (context, child, loadingProgress) {
-                    // Widget hiển thị trong lúc tải ảnh
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      width: 80,
-                      height: 80,
-                      color: Colors.grey[200],
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF25278)),
-                        ),
-                      ),
-                    );
-                  },
+                  color: Colors.grey[200],
+                  child: _buildNailImage(item.nailImage),
                 ),
               ),
               const SizedBox(width: 12),
 
-              // Thông tin
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,14 +475,22 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      item.storeName,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      children: [
+                        const Icon(Icons.store, size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            item.storeName,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -300,6 +526,40 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
     );
   }
 
+// Chỉ dùng Image.asset cho local assets
+  Widget _buildNailImage(String imagePath) {
+    // Kiểm tra xem đường dẫn có hợp lệ không
+    if (imagePath.isEmpty || !imagePath.startsWith('assets/')) {
+      return _buildErrorImage();
+    }
+
+    try {
+      return Image.asset(
+        imagePath,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          print('❌ Error loading asset: $imagePath - $error');
+          return _buildErrorImage();
+        },
+      );
+    } catch (e) {
+      print('❌ Exception loading asset $imagePath: $e');
+      return _buildErrorImage();
+    }
+  }
+
+  Widget _buildErrorImage() {
+    return Container(
+      color: Colors.grey[100],
+      child: const Center(
+        child: Icon(
+          Icons.photo,
+          color: Colors.grey,
+          size: 40,
+        ),
+      ),
+    );
+  }
   Widget _buildBottomActionBar() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -316,16 +576,57 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          StreamBuilder<int>(
-            stream: _bookingCartService.getBookingCartItemCount(),
-            builder: (context, snapshot) {
-              final count = snapshot.data ?? 0;
-              return SizedBox(
+      child: StreamBuilder<List<BookingCartItem>>(
+        stream: _bookingCartService.getBookingCartItems(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const SizedBox();
+          }
+
+          final items = snapshot.data!;
+          final grouped = _groupItemsByStore(items);
+          final storeCount = grouped.length;
+          final totalCount = items.length;
+
+          return Column(
+            children: [
+              if (storeCount > 1) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _showStoreGroupingDialog,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.orange,
+                      side: const BorderSide(color: Colors.orange),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.store_mall_directory, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'XEM $storeCount CỬA HÀNG ($totalCount MẪU)',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Primary action button
+              SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: count > 0 ? () => _proceedToBookingDetails(context) : null,
+                  onPressed: () => _handleProceedToBooking(items, grouped),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF25278),
                     foregroundColor: Colors.white,
@@ -341,7 +642,9 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                       const Icon(Icons.calendar_today, size: 20),
                       const SizedBox(width: 8),
                       Text(
-                        'TIẾP TỤC ĐẶT LỊCH${count > 0 ? ' ($count)' : ''}',
+                        storeCount == 1
+                            ? 'ĐẶT LỊCH NGAY ($totalCount MẪU)'
+                            : 'QUẢN LÝ ĐẶT LỊCH',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -350,10 +653,10 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                     ],
                   ),
                 ),
-              );
-            },
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -520,15 +823,32 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
   }
 
   void _showClearAllDialog() async {
-    final count = await _bookingCartService.getBookingCartItemCount().first;
-    if (count == 0) return;
+    final items = await _bookingCartService.getBookingCartItems().first;
+    if (items.isEmpty) return;
+
+    final count = items.length;
+    final grouped = _groupItemsByStore(items);
+    final storeCount = grouped.length;
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('Xóa tất cả'),
-          content: Text('Bạn có chắc muốn xóa tất cả $count mẫu nail khỏi danh sách đặt lịch?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Bạn có chắc muốn xóa tất cả $count mẫu nail?'),
+              if (storeCount > 1) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '($storeCount cửa hàng sẽ bị xóa)',
+                  style: const TextStyle(color: Colors.orange),
+                ),
+              ],
+            ],
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -573,63 +893,231 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
     }
   }
 
-  void _proceedToBookingDetails(BuildContext context) async {
-    // Lấy danh sách items hiện tại
-    final items = await _bookingCartService.getBookingCartItems().first;
+  void _handleProceedToBooking(
+      List<BookingCartItem> items,
+      Map<String, List<BookingCartItem>> groupedItems
+      ) {
+    final storeCount = groupedItems.length;
 
-    if (items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng chọn ít nhất một mẫu nail'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (storeCount == 1) {
+      // Nếu chỉ có 1 cửa hàng, đặt lịch ngay
+      _proceedWithStore(groupedItems.keys.first, items);
+    } else {
+      // Nếu có nhiều cửa hàng, hiển thị dialog lựa chọn
+      _showStoreGroupingDialog();
+    }
+  }
+
+  void _showStoreGroupingDialog() async {
+    final items = await _bookingCartService.getBookingCartItems().first;
+    if (items.isEmpty) return;
+
+    final groupedItems = _groupItemsByStore(items);
+    final storeCount = groupedItems.length;
+
+    if (storeCount == 1) {
+      _proceedWithStore(groupedItems.keys.first, items);
       return;
     }
 
-    // Kiểm tra xem tất cả items có cùng store không
-    final firstStoreId = items.first.storeId;
-    final allSameStore = items.every((item) => item.storeId == firstStoreId);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Đặt lịch nhiều cửa hàng'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Bạn đang chọn mẫu từ nhiều cửa hàng. Mỗi cửa hàng cần đặt lịch riêng:',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 16),
 
-    if (!allSameStore) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Thông báo'),
-          content: const Text('Các mẫu nail được chọn từ nhiều cửa hàng khác nhau. Vui lòng đặt lịch từng cửa hàng riêng biệt.'),
+                ...groupedItems.entries.map((entry) {
+                  final storeId = entry.key;
+                  final storeItems = entry.value;
+                  final storeName = storeItems.first.storeName;
+                  final itemCount = storeItems.length;
+                  final totalPrice = storeItems.fold(0.0, (sum, item) => sum + item.price);
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.store, color: Color(0xFFF25278), size: 24),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      storeName,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      '$itemCount mẫu • ${_currencyFormat.format(totalPrice)}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              OutlinedButton(
+                                onPressed: () async {
+                                  Navigator.pop(context);
+                                  await _keepOnlyThisStore(storeId);
+                                  _proceedWithStore(storeId, storeItems);
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.orange,
+                                  side: const BorderSide(color: Colors.orange),
+                                ),
+                                child: const Text('Chỉ giữ cửa hàng này'),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _proceedWithStore(storeId, storeItems);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFF25278),
+                                ),
+                                child: const Text('Đặt lịch'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                const Text(
+                  'Lưu ý: Bạn có thể đặt lần lượt từng cửa hàng',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Đã hiểu'),
+              child: const Text('Đóng'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  void _proceedWithStore(String storeId, List<BookingCartItem> storeItems) async {
+    try {
+      final firstItem = storeItems.first;
+
+      // Load đầy đủ thông tin store từ Firestore
+      final storeDoc = await FirebaseFirestore.instance
+          .collection('stores')
+          .doc(storeId)
+          .get();
+
+      Store store;
+      if (storeDoc.exists) {
+        store = Store.fromFirestore(storeDoc);
+      } else {
+        // Fallback nếu không tìm thấy store
+        store = Store(
+          id: storeId,
+          name: firstItem.storeName,
+          address: '',
+          hotline: '',
+          isOpen: true,
+          imgUrl: '',
+          location: const GeoPoint(0, 0),
+        );
+      }
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BookingScreen(
+            selectedNail: _convertToNail(firstItem),
+            selectedStore: store,
+            bookingCartItems: storeItems,
+          ),
+        ),
+      ).then((_) {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+
+    } catch (e) {
+      print('Error proceeding with store: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi: $e'),
+          backgroundColor: Colors.red,
         ),
       );
-      return;
     }
-    final store = Store(
-      id: firstStoreId,
-      name: items.first.storeName,
-      address: '',
-      hotline: '',
-      isOpen: true,
-      imgUrl: '',
-      location: const GeoPoint(0, 0),
-    );
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BookingScreen(
-          selectedNail: _convertToNail(items.first),
-          selectedStore: store,
-          bookingCartItems: items,
-        ),
-      ),
-    ).then((_) {
-      if (mounted) {
-        setState(() {});
+  }
+
+  Future<void> _keepOnlyThisStore(String storeIdToKeep) async {
+    try {
+      final allItems = await _bookingCartService.getBookingCartItems().first;
+      final itemsToRemove = allItems.where((item) => item.storeId != storeIdToKeep);
+
+      for (var item in itemsToRemove) {
+        await _bookingCartService.removeFromBookingCart(item.nailId);
       }
-    });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Đã giữ lại mẫu của cửa hàng này'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error keeping only one store: $e');
+    }
+  }
+
+  Map<String, List<BookingCartItem>> _groupItemsByStore(List<BookingCartItem> items) {
+    final Map<String, List<BookingCartItem>> grouped = {};
+
+    for (var item in items) {
+      if (!grouped.containsKey(item.storeId)) {
+        grouped[item.storeId] = [];
+      }
+      grouped[item.storeId]!.add(item);
+    }
+
+    return grouped;
   }
 
   // Helper method để convert BookingCartItem sang Nail

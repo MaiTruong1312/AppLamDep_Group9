@@ -5,7 +5,8 @@
 .packages
 .pub-cache/
 build/
-
+serviceAccountKey.json
+firebase_seed/serviceAccountKey.json
 # iOS
 ios/Pods/
 ios/.symlinks/
