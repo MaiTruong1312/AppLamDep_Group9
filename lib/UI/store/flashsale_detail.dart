@@ -7,7 +7,6 @@ import '../../theme/app_typography.dart';
 class FlashSaleDetailScreen extends StatefulWidget {
   final Flashsale flashsale;
   final Duration initialRemainingTime; // Nhận thời gian còn lại từ trang Store
-
   const FlashSaleDetailScreen({
     super.key,
     required this.flashsale,
@@ -104,7 +103,7 @@ class _FlashSaleDetailScreenState extends State<FlashSaleDetailScreen> {
           ),
         ],
       ),
-      bottomSheet: _buildBottomAction(),
+      // bottomSheet: _buildBottomAction(),
     );
   }
 
@@ -179,24 +178,24 @@ class _FlashSaleDetailScreenState extends State<FlashSaleDetailScreen> {
     );
   }
 
-  Widget _buildBottomAction() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))],
-      ),
-      child: ElevatedButton(
-        onPressed: () => Navigator.pop(context),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        ),
-        child: const Text("USE THIS OFFER NOW", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      ),
-    );
-  }
+  // Widget _buildBottomAction() {
+  //   return Container(
+  //     padding: const EdgeInsets.all(20),
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))],
+  //     ),
+  //     child: ElevatedButton(
+  //       onPressed: () => Navigator.pop(context),
+  //       style: ElevatedButton.styleFrom(
+  //         backgroundColor: AppColors.primary,
+  //         minimumSize: const Size(double.infinity, 56),
+  //         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+  //       ),
+  //       child: const Text("USE THIS OFFER NOW", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+  //     ),
+  //   );
+  // }
 
   Widget _buildSmartImage(String path) {
     if (path.startsWith('assets/')) return Image.asset(path, fit: BoxFit.cover);

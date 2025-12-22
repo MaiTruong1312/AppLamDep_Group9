@@ -37,12 +37,87 @@ class _StoreDetailsState extends State<StoreDetails> {
   final PageController _headerPageController = PageController();
   int _currentImageIndex = 0;
 
+  bool isFavorite = false;
+  bool isFavoriteLoading = false;
+
   @override
   void initState() {
     super.initState();
     _startCountdown();
+    // Kiểm tra trạng thái yêu thích ngay khi vào trang
+    _checkFavoriteStatus();
     Future.microtask(() =>
         Provider.of<StoreProvider>(context, listen: false).fetchStore(widget.storeId));
+  }
+
+// Kiểm tra tiệm đã nằm trong danh sách yêu thích chưa
+  Future<void> _checkFavoriteStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('wishlist_store')
+          .where('user_id', isEqualTo: user.uid)
+          .where('store_id', isEqualTo: widget.storeId)
+          .get();
+
+      if (mounted) {
+        setState(() => isFavorite = snapshot.docs.isNotEmpty);
+      }
+    } catch (e) {
+      debugPrint("Lỗi kiểm tra wishlist: $e");
+    }
+  }
+
+// Logic thêm/xóa khỏi wishlist
+  Future<void> _toggleFavorite() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      // Thông báo nếu người dùng chưa đăng nhập
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Vui lòng đăng nhập để lưu tiệm yêu thích")),
+      );
+      return;
+    }
+
+    setState(() => isFavoriteLoading = true);
+
+    final collectionRef = FirebaseFirestore.instance.collection('wishlist_store');
+
+    try {
+      if (isFavorite) {
+        // Xóa khỏi danh sách
+        final snapshot = await collectionRef
+            .where('user_id', isEqualTo: user.uid)
+            .where('store_id', isEqualTo: widget.storeId)
+            .get();
+        for (var doc in snapshot.docs) {
+          await doc.reference.delete();
+        }
+      } else {
+        // Thêm mới vào danh sách
+        await collectionRef.add({
+          'user_id': user.uid,
+          'store_id': widget.storeId,
+          'created_at': FieldValue.serverTimestamp(),
+        });
+      }
+      setState(() => isFavorite = !isFavorite);
+    } catch (e) {
+      debugPrint("Lỗi cập nhật wishlist: $e");
+    } finally {
+      setState(() => isFavoriteLoading = false);
+    }
+  }
+
+// Logic chia sẻ tiệm
+  void _shareStore(Store store) {
+    // Bạn có thể sử dụng package share_plus để thực hiện chia sẻ thật
+    debugPrint("Sharing store: ${store.name}");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Đang chia sẻ tiệm ${store.name}...")),
+    );
   }
 
   void _startCountdown() {
@@ -129,7 +204,28 @@ class _StoreDetailsState extends State<StoreDetails> {
       pinned: true,
       elevation: 0,
       backgroundColor: Colors.white,
-      leading: const BackButton(color: Colors.white),
+      leading: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: _buildCircleAction(
+            Icons.arrow_back,
+                () => Navigator.pop(context)
+        ),
+      ),
+      // THÊM NÚT SHARE VÀ YÊU THÍCH TẠI ĐÂY
+      actions: [
+        _buildCircleAction(
+            Icons.share_outlined,
+                () => _shareStore(store)
+        ),
+        const SizedBox(width: 8),
+        _buildCircleAction(
+          isFavorite ? Icons.favorite : Icons.favorite_border,
+          _toggleFavorite,
+          iconColor: isFavorite ? Colors.red : Colors.white,
+          isLoading: isFavoriteLoading,
+        ),
+        const SizedBox(width: 16),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
           fit: StackFit.expand,
@@ -146,6 +242,24 @@ class _StoreDetailsState extends State<StoreDetails> {
             _buildCustomIndicator(images.length),
             _buildContactButtons(store),
           ],
+        ),
+      ),
+    );
+  }
+  // Widget phụ trợ cho các nút bấm hình tròn trên AppBar
+  Widget _buildCircleAction(IconData icon, VoidCallback onTap, {Color iconColor = Colors.white, bool isLoading = false}) {
+    return Center(
+      child: GestureDetector(
+        onTap: isLoading ? null : onTap,
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.3), // Nền mờ để nổi bật trên mọi màu ảnh
+            shape: BoxShape.circle,
+          ),
+          child: isLoading
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : Icon(icon, color: iconColor, size: 20),
         ),
       ),
     );
