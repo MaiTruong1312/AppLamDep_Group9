@@ -70,14 +70,31 @@ class Store {
     );
   }
 
-  Store copyWith({double? distance}) {
+  Store copyWith({double? distance, List<Service>? services}) {
     return Store(
-      id: id, name: name, address: address, imgUrl: imgUrl, location: location,
-      openingHours: openingHours, rating: rating, reviewsCount: reviewsCount,
-      services: services, flashsales: flashsales, portfolio: portfolio,
-      reviews: reviews, totalNails: totalNails, followerCount: followerCount,
-      viewCount: viewCount, hotline: hotline, email: email, website: website,
-      description: description, distance: distance ?? this.distance, isOpen: isOpen,
+      id: id,
+      name: name,
+      address: address,
+      imgUrl: imgUrl,
+      location: location,
+      openingHours: openingHours,
+      rating: rating,
+      reviewsCount: reviewsCount,
+      // CHỈNH SỬA TẠI ĐÂY: Cho phép nhận danh sách dịch vụ mới
+      services: services ?? this.services,
+      flashsales: flashsales,
+      portfolio: portfolio,
+      reviews: reviews,
+      totalNails: totalNails,
+      followerCount: followerCount,
+      viewCount: viewCount,
+      hotline: hotline,
+      email: email,
+      website: website,
+      description: description,
+      establishedDate: establishedDate,
+      distance: distance ?? this.distance,
+      isOpen: isOpen,
     );
   }
 }
@@ -86,12 +103,17 @@ class Flashsale {
   final String title;
   final String imageUrl;
   final double discount;
+  final String description;
+  final String conditions;
 
-  Flashsale({required this.title, required this.imageUrl, required this.discount});
+  Flashsale({required this.title, required this.imageUrl, required this.discount, required this.description,
+    required this.conditions,});
 
   factory Flashsale.fromMap(Map<String, dynamic> map) => Flashsale(
     title: map['title'] ?? '',
     imageUrl: map['imageUrl'] ?? map['image_url'] ?? '',
     discount: (map['discount'] as num?)?.toDouble() ?? 0.0,
+    description: map['description'] ?? 'No description available',
+    conditions: map['conditions'] ?? 'Standard terms apply',
   );
 }

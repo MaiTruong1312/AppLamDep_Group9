@@ -3,6 +3,8 @@ import '../../models/store_model.dart';
 import '../../models/service_model.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import 'service_details.dart';
+
 
 Widget _buildSmartImage(String path) {
   if (path.isEmpty) return Container(color: Colors.grey[200], child: const Icon(Icons.image_not_supported));
@@ -17,7 +19,26 @@ Widget _buildSmartImage(String path) {
 class MostServiceTab extends StatelessWidget {
   final Store store;
   const MostServiceTab({super.key, required this.store});
+  void _navigateToDetail(BuildContext context, Service service, {bool showMessage = false}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ServiceDetailsScreen(service: service, store: store),
+      ),
+    );
 
+    if (showMessage) {
+      // Hiển thị thông báo tiếng Anh như yêu cầu
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please select a design to book an appointment"),
+          backgroundColor: AppColors.primary,
+          duration: Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -48,7 +69,7 @@ class MostServiceTab extends StatelessWidget {
             itemCount: store.services.length,
             itemBuilder: (context, index) {
               final service = store.services[index];
-              return _buildServiceCard(service);
+              return _buildServiceCard(context, service);
             },
           ),
         ),
@@ -56,99 +77,96 @@ class MostServiceTab extends StatelessWidget {
     );
   }
 
-  Widget _buildServiceCard(Service service) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 15,
-                offset: const Offset(0, 8)
-            )
-          ]
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Hình ảnh dịch vụ (Lấy từ imageUrl trong Firebase)
-          ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              child: SizedBox(
-                height: 180,
-                width: double.infinity,
-                child: _buildSmartImage(service.imageUrl ?? ''),
+  Widget _buildServiceCard(BuildContext context, Service service) {
+    return InkWell(
+      // 1. Ấn vào card chuyển hướng sang Service Details
+      onTap: () => _navigateToDetail(context, service),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8)
               )
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 2. Tên dịch vụ
-                Text(
-                    service.name,
-                    style: AppTypography.textMD.copyWith(fontWeight: FontWeight.bold)
-                ),
-                const SizedBox(height: 4),
-                Text(
-                    "Premium beauty service with quality care.",
-                    style: AppTypography.textSM.copyWith(color: Colors.grey)
-                ),
-                const SizedBox(height: 12),
-
-                // 3. Thông số: Bookings & Nút đặt lịch
-                Row(
-                  children: [
-                    const Icon(Icons.history, color: Colors.grey, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                        "${service.bookings}+ bookings",
-                        style: AppTypography.textXS.copyWith(color: Colors.grey)
-                    ),
-                    const Spacer(),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Logic đặt lịch
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      ),
-                      child: Text(
-                          "Book",
-                          style: AppTypography.textSM.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white
-                          )
-                      ),
-                    )
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                // 4. Thời gian thực hiện dịch vụ
-                Row(
-                  children: [
-                    const Icon(Icons.access_time, color: Colors.grey, size: 14),
-                    const SizedBox(width: 4),
-                    Text(
-                        "Time: ${service.duration}",
-                        style: AppTypography.textXS.copyWith(color: Colors.grey)
-                    ),
-                  ],
-                ),
-              ],
+            ]
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                child: SizedBox(
+                  height: 180,
+                  width: double.infinity,
+                  child: _buildSmartImage(service.imageUrl ?? ''),
+                )
             ),
-          )
-        ],
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                      service.name,
+                      style: AppTypography.textMD.copyWith(fontWeight: FontWeight.bold)
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    service.description.isNotEmpty ? service.description : "Premium beauty service with quality care.",
+                    style: AppTypography.textSM.copyWith(color: Colors.grey),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 2. Bỏ phần Bookings, hiển thị Time và nút Book
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Hiển thị thời gian
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time, color: Colors.grey, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                              "Time: ${service.duration} mins",
+                              style: AppTypography.textSM.copyWith(color: Colors.grey, fontWeight: FontWeight.w500)
+                          ),
+                        ],
+                      ),
+
+                      // Nút Book
+                      ElevatedButton(
+                        onPressed: () => _navigateToDetail(context, service, showMessage: true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                        child: Text(
+                            "Book",
+                            style: AppTypography.textSM.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white
+                            )
+                        ),
+                      )
+                    ],
+                  ),
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }

@@ -1,30 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/store_model.dart';
+import '../models/service_model.dart';
 import '../services/store_service.dart';
 
 class StoreProvider with ChangeNotifier {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final StoreService _storeService = StoreService();
+
   List<Store> _stores = [];
   Store? _currentStore;
   bool _isLoading = false;
   String? _error;
   Position? _userPosition;
 
+  // Getters
   List<Store> get stores => _stores;
   Store? get currentStore => _currentStore;
   bool get isLoading => _isLoading;
   String? get error => _error;
   Position? get userPosition => _userPosition;
 
-  // 1. Lấy tọa độ GPS của người dùng
-  // store_provider.dart
+  // 1. LẤY VỊ TRÍ NGƯỜI DÙNG (Giả lập tại Học viện Ngân hàng)
   Future<void> fetchUserLocation() async {
     _isLoading = true;
     notifyListeners();
-
     try {
-      // THIẾT LẬP VỊ TRÍ CỐ ĐỊNH TẠI HỌC VIỆN NGÂN HÀNG
+      // Thiết lập vị trí cố định theo yêu cầu
       _userPosition = Position(
         latitude: 21.0091,
         longitude: 105.8289,
@@ -37,8 +40,7 @@ class StoreProvider with ChangeNotifier {
         altitudeAccuracy: 0.0,
         headingAccuracy: 0.0,
       );
-
-      print("Đã xác định vị trí tại: Học viện Ngân hàng");
+      debugPrint("Đã xác định vị trí tại: Học viện Ngân hàng");
     } catch (e) {
       _error = 'Lỗi giả lập vị trí: $e';
     } finally {
@@ -47,26 +49,78 @@ class StoreProvider with ChangeNotifier {
     }
   }
 
-  // 2. Lấy danh sách tiệm và TÍNH TOÁN KHOẢNG CÁCH THỰC TẾ
+  // 2. LẤY CHI TIẾT TIỆM VÀ ĐỒNG BỘ DỊCH VỤ TỪ KHO TỔNG
+  Future<void> fetchStore(String storeId) async {
+    _isLoading = true;
+    _error = null;
+    _currentStore = null; // Xóa dữ liệu cũ để tránh nhầm lẫn UI
+    notifyListeners();
+
+    try {
+      // BƯỚC A: Lấy dữ liệu Store từ collection 'stores'
+      DocumentSnapshot storeDoc = await _firestore.collection('stores').doc(storeId).get();
+      if (!storeDoc.exists) throw "Cửa hàng không tồn tại";
+
+      Map<String, dynamic> storeData = storeDoc.data() as Map<String, dynamic>;
+
+      // BƯỚC B: Lấy mảng String tên dịch vụ từ trường 'services'
+      List<String> serviceNames = List<String>.from(storeData['services'] ?? []);
+      // BƯỚC C: Truy vấn "Kho tổng" để lấy chi tiết (ảnh, giá, mô tả...)
+      List<Service> detailedServices = [];
+      if (serviceNames.isNotEmpty) {
+        // Dùng 'whereIn' để lấy tất cả dịch vụ chỉ với 1 lần gọi (tối ưu hiệu năng)
+        QuerySnapshot serviceSnap = await _firestore
+            .collection('services')
+            .where('name', whereIn: serviceNames)
+            .get();
+
+        detailedServices = serviceSnap.docs.map((doc) => Service.fromFirestore(doc)).toList();
+      }
+
+      // BƯỚC D: Tạo đối tượng Store và tính khoảng cách thực tế
+      Store store = Store.fromFirestore(storeDoc);
+
+      double? dist;
+      if (_userPosition != null && store.location != null) {
+        dist = Geolocator.distanceBetween(
+            _userPosition!.latitude, _userPosition!.longitude,
+            store.location!.latitude, store.location!.longitude
+        ) / 1000; // Đổi sang km
+      }
+
+      // Cập nhật currentStore với đầy đủ thông tin dịch vụ
+      // LƯU Ý: Phải đảm bảo Model Store đã có hàm copyWith nhận tham số 'services'
+      _currentStore = store.copyWith(
+        distance: dist,
+        services: detailedServices,
+      );
+
+    } catch (e) {
+      _error = e.toString();
+      debugPrint("Lỗi fetchStore: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // 3. LẤY DANH SÁCH TIỆM (Dành cho trang chủ)
   Future<void> fetchAllStores() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
     try {
-      // 1. Lấy danh sách tiệm từ Firebase
       List<Store> fetchedStores = await _storeService.getAllStores(userPosition: _userPosition);
 
-      // 2. Nếu đã lấy được vị trí người dùng (_userPosition không null)
       if (_userPosition != null) {
         _stores = fetchedStores.map((store) {
           if (store.location != null) {
-            // Tính khoảng cách từ bạn đến tiệm (trả về mét)
             double distanceInMeters = Geolocator.distanceBetween(
               _userPosition!.latitude,
               _userPosition!.longitude,
               store.location!.latitude,
               store.location!.longitude,
             );
-            // Chuyển sang km và tạo bản sao mới của store bằng copyWith
             return store.copyWith(distance: distanceInMeters / 1000);
           }
           return store;
@@ -76,32 +130,6 @@ class StoreProvider with ChangeNotifier {
         _stores.sort((a, b) => a.distance.compareTo(b.distance));
       } else {
         _stores = fetchedStores;
-      }
-    } catch (e) {
-      _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // 3. Lấy chi tiết 1 tiệm và cập nhật khoảng cách cho màn hình Detail
-  Future<void> fetchStore(String storeId) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      Store store = await _storeService.getStoreById(storeId);
-
-      if (_userPosition != null && store.location != null) {
-        double dist = Geolocator.distanceBetween(
-            _userPosition!.latitude, _userPosition!.longitude,
-            store.location!.latitude, store.location!.longitude
-        );
-        _currentStore = store.copyWith(distance: dist / 1000);
-      } else {
-        _currentStore = store;
       }
     } catch (e) {
       _error = e.toString();

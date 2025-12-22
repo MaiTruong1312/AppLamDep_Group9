@@ -271,7 +271,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 decoration: const InputDecoration(border: InputBorder.none, hintText: "Chat...", isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 8)),
               ),
             ),
-            if (_isWriting) IconButton(icon: const Icon(Icons.send, color: Color(0xFFF25278)), onPressed: () => _handleSend(_messageController.text))
+            if (_isWriting) IconButton(icon: const Icon(Icons.send, color: AppColors.primary), onPressed: () => _handleSend(_messageController.text))
             else ...[
               _buildInputIcon(Icons.mic_none_outlined, AppColors.neutral950),
               _buildInputIcon(Icons.image_outlined, AppColors.neutral950),

@@ -18,6 +18,7 @@ import 'store_tab_giftcard.dart';
 import 'store_tab_location.dart';
 import 'chat_screen.dart';
 import 'service_details.dart';
+import 'flashsale_detail.dart';
 
 
 
@@ -176,14 +177,13 @@ class _StoreDetailsState extends State<StoreDetails> {
 
   Widget _buildServiceGrid(List<Service> services) {
     const Map<String, String> iconMapping = {
-      "Nail Art": "assets/icons/hair_removal.svg",
-      "Crystal Embellishment": "assets/icons/hair_cut.svg",
-      "Airbrush Design": "assets/icons/hair_style.svg",
+      "Nail Art": "assets/icons/nails.svg",
+      "Crystal Embellishment": "assets/icons/facial.svg",
+      "Airbrush Design": "assets/icons/facial.svg",
       "3d Sculpture": "assets/icons/facial.svg",
       "Special Occasion Nails": "assets/icons/nails.svg",
-      "Nails": "assets/icons/nails.svg",
+      "Gel Polish": "assets/icons/nails.svg",
       "Manicure": "assets/icons/facial.svg",
-      "Med Spa": "assets/icons/med_spa.svg",
       "Medicure": "assets/icons/massage.svg",
     };
 
@@ -272,23 +272,48 @@ class _StoreDetailsState extends State<StoreDetails> {
 
   Widget _buildFlashsaleList(List<Flashsale> sales) {
     return SizedBox(
-      height: 110,
+      height: 120, // Tăng nhẹ chiều cao để tránh bị cắt bóng (shadow)
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16), // Thêm padding cho mượt
         itemCount: sales.length,
-        itemBuilder: (context, index) => Container(
-          width: 110,
-          margin: const EdgeInsets.only(right: 12, bottom: 5),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4))],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: _buildSmartImage(sales[index].imageUrl),
-          ),
-        ),
+        itemBuilder: (context, index) {
+          final sale = sales[index];
+          return InkWell(
+            // 1. SỰ KIỆN NHẤN: Chuyển sang màn hình FlashSaleDetailScreen
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FlashSaleDetailScreen(
+                    flashsale: sale,
+                    // 2. TRUYỀN THỜI GIAN: Lấy giá trị _remainingTime hiện tại của Store
+                    initialRemainingTime: _remainingTime,
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              width: 110,
+              margin: const EdgeInsets.only(right: 12, bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4)
+                  )
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: _buildSmartImage(sale.imageUrl),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

@@ -19,7 +19,6 @@ class Service {
 
   // --- THUỘC TÍNH BỔ SUNG CHO UI CLIENT (Lấy từ store_model.dart cũ) ---
   final double rating;
-  final int bookings;
 
   Service({
     required this.id,
@@ -38,7 +37,6 @@ class Service {
     this.quantity = 0,
     // Giá trị mặc định cho UI
     this.rating = 5.0,
-    this.bookings = 0,
   });
 
   // Getter tiện ích để hiển thị UI
@@ -63,7 +61,6 @@ class Service {
       quantity: 0,
       // Map thêm fields UI nếu có
       rating: (data['rating'] as num?)?.toDouble() ?? 5.0,
-      bookings: (data['bookings'] as int?) ?? 0,
     );
   }
 
@@ -84,7 +81,6 @@ class Service {
       requiresNailDesign: map['requiresNailDesign'] ?? false,
       position: (map['position'] as int?) ?? 0,
       rating: (map['rating'] as num?)?.toDouble() ?? 5.0,
-      bookings: (map['bookings'] as int?) ?? 0,
     );
   }
 
@@ -102,7 +98,6 @@ class Service {
       'position': position,
       'updatedAt': FieldValue.serverTimestamp(),
       'rating': rating,
-      'bookings': bookings,
     };
   }
 }
