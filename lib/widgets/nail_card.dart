@@ -82,7 +82,7 @@ class _NailCardState extends State<NailCard> {
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vui lòng đăng nhập để thích mẫu nail.'),
+          content: Text('Please log in to like nail designs.'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -106,7 +106,7 @@ class _NailCardState extends State<NailCard> {
         if (wishlistSnapshot.exists) {
           transaction.delete(wishlistRef);
           transaction.update(nailRef, {'likes': (currentLikes - 1).clamp(0, 999999)});
-          _showSnackBar('Đã bỏ thích mẫu nail');
+          _showSnackBar('You unliked the nail design.');
         } else {
           transaction.set(wishlistRef, {
             'user_id': user.uid,
@@ -121,8 +121,8 @@ class _NailCardState extends State<NailCard> {
         }
       });
     } catch (e) {
-      debugPrint("Lỗi khi thích/bỏ thích: $e");
-      _showSnackBar('Có lỗi xảy ra: $e', isError: true);
+      debugPrint("Error when liking/unliking: $e");
+      _showSnackBar('An error occurred: $e', isError: true);
     }
   }
 
@@ -133,7 +133,7 @@ class _NailCardState extends State<NailCard> {
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vui lòng đăng nhập để đặt lịch.'),
+          content: Text('Please log in to schedule an appointment.'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -153,7 +153,7 @@ class _NailCardState extends State<NailCard> {
           .get();
 
       if (cartSnapshot.exists) {
-        _showSnackBar('Mẫu nail này đã có trong danh sách đặt lịch');
+        _showSnackBar('This nail design is already on the booking list.');
         return;
       }
 
@@ -163,7 +163,7 @@ class _NailCardState extends State<NailCard> {
         nailImage: widget.nail.imgUrl,
         price: widget.nail.price.toDouble(),
         storeId: widget.nail.storeId,
-        storeName: _effectiveStore?.name ?? 'Chưa xác định', // Sử dụng effectiveStore
+        storeName: _effectiveStore?.name ?? 'Undetermined', // Sử dụng effectiveStore
       );
 
       if (widget.onAddedToBookingCart != null) {
@@ -171,17 +171,17 @@ class _NailCardState extends State<NailCard> {
       }
 
       _showSnackBar(
-        'Đã thêm "${widget.nail.name}" vào danh sách đặt lịch',
+        '"${widget.nail.name}" has been added to the appointment list.',
         isSuccess: true,
         action: SnackBarAction(
-          label: 'Xem',
+          label: 'Look',
           onPressed: () {
             Navigator.pushNamed(context, '/booking_cart');
           },
         ),
       );
     } catch (e) {
-      _showSnackBar('Lỗi: $e', isError: true);
+      _showSnackBar('ERROR: $e', isError: true);
     } finally {
       setState(() {
         _isAddingToCart = false;
@@ -454,7 +454,7 @@ class _NailCardState extends State<NailCard> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Đang tải...',
+                          'Loading...',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],

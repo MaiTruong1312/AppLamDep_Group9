@@ -228,7 +228,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                                 child: Column(
                                   children: [
                                     Text(
-                                      'Bạn đánh giá thế nào?',
+                                      'What do you think?',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
@@ -267,7 +267,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                                       Padding(
                                         padding: const EdgeInsets.only(top: 12),
                                         child: Text(
-                                          '${_rating.toInt()}.0 sao',
+                                          '${_rating.toInt()}.0 star',
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
@@ -288,7 +288,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Bình luận',
+                                    'Comment',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -313,7 +313,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                                         color: Colors.white,
                                       ),
                                       decoration: InputDecoration(
-                                        hintText: 'Chia sẻ trải nghiệm của bạn...',
+                                        hintText: 'Share your experience...',
                                         hintStyle: TextStyle(color: Colors.black26.withOpacity(0.5)),
                                         border: InputBorder.none,
                                         contentPadding: EdgeInsets.all(16),
@@ -332,7 +332,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Thêm hình ảnh (tuỳ chọn)',
+                                    'Add images (optional)',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -371,7 +371,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                                           ),
                                           SizedBox(height: 8),
                                           Text(
-                                            'Thêm ảnh/video',
+                                            'Add photos/videos',
                                             style: TextStyle(
                                               color: Colors.white.withOpacity(0.6),
                                               fontSize: 14,
@@ -413,7 +413,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                                       ),
                                       child: Center(
                                         child: Text(
-                                          'Hủy',
+                                          'Cancel',
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
@@ -434,7 +434,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                                       final user = FirebaseAuth.instance.currentUser;
                                       if (user == null) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Vui lòng đăng nhập để đánh giá.')),
+                                          SnackBar(content: Text('Please log in to leave a review.')),
                                         );
                                         return;
                                       }
@@ -442,7 +442,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                                       if (_rating == 0 || _commentController.text.isEmpty) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
-                                              content: Text('Vui lòng chọn sao và viết bình luận.')),
+                                              content: Text('Please rate with stars and write a review.')),
                                         );
                                         return;
                                       }
@@ -473,7 +473,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                                       Navigator.of(context).pop();
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
-                                          content: Text('Đánh giá của bạn đã được gửi.'),
+                                          content: Text('Your review has been submitted.'),
                                           backgroundColor: Colors.green,
                                         ),
                                       );
@@ -500,7 +500,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                                       ),
                                       child: Center(
                                         child: Text(
-                                          'Gửi đánh giá',
+                                          'Submit a review',
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
@@ -650,67 +650,6 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                   ),
                 ),
               ),
-
-              // // Indicator dots ở dưới (nếu có nhiều ảnh)
-              // if (isExpanded)
-              //   Positioned(
-              //     bottom: 30,
-              //     left: 0,
-              //     right: 0,
-              //     child: Row(
-              //       mainAxisAlignment: MainAxisAlignment.center,
-              //       children: [
-              //         Container(
-              //           width: 8,
-              //           height: 8,
-              //           margin: EdgeInsets.symmetric(horizontal: 4),
-              //           decoration: BoxDecoration(
-              //             color: Colors.white,
-              //             borderRadius: BorderRadius.circular(4),
-              //             boxShadow: [
-              //               BoxShadow(
-              //                 color: Colors.black.withOpacity(0.2),
-              //                 blurRadius: 2,
-              //                 spreadRadius: 1,
-              //               ),
-              //             ],
-              //           ),
-              //         ),
-              //         Container(
-              //           width: 8,
-              //           height: 8,
-              //           margin: EdgeInsets.symmetric(horizontal: 4),
-              //           decoration: BoxDecoration(
-              //             color: Colors.white.withOpacity(0.5),
-              //             borderRadius: BorderRadius.circular(4),
-              //             boxShadow: [
-              //               BoxShadow(
-              //                 color: Colors.black.withOpacity(0.2),
-              //                 blurRadius: 2,
-              //                 spreadRadius: 1,
-              //               ),
-              //             ],
-              //           ),
-              //         ),
-              //         Container(
-              //           width: 8,
-              //           height: 8,
-              //           margin: EdgeInsets.symmetric(horizontal: 4),
-              //           decoration: BoxDecoration(
-              //             color: Colors.white.withOpacity(0.5),
-              //             borderRadius: BorderRadius.circular(4),
-              //             boxShadow: [
-              //               BoxShadow(
-              //                 color: Colors.black.withOpacity(0.2),
-              //                 blurRadius: 2,
-              //                 spreadRadius: 1,
-              //               ),
-              //             ],
-              //           ),
-              //         ),
-              //       ],
-              //     ),
-              //   ),
             ],
           );
         },
@@ -874,7 +813,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                   ),
                 );
               },
-              child: Text('Xem cửa hàng'),
+              child: Text('View store'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.pink,
                 side: BorderSide(color: Colors.pink),
@@ -902,7 +841,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
               Icon(Icons.local_offer, color: Colors.pink, size: 20),
               SizedBox(width: 8),
               Text(
-                'Mã giảm giá',
+                'Discount code',
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -912,7 +851,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
           ),
           SizedBox(height: 8),
           Text(
-            'Giảm 20% cho đơn hàng tiếp theo của bạn. Đừng bỏ lỡ!',
+            'Get 20% off your next order. Dont miss out!',
             style: TextStyle(color: Colors.black87),
           ),
           SizedBox(height: 12),
@@ -920,7 +859,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Kết thúc sau:',
+                'End: ',
                 style: TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.grey.shade700),
               ),
@@ -956,7 +895,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
   }
 
   Widget _buildCombinedReviewItem(Review review, UserModel? user) {
-    final userName = user?.name ?? 'Người dùng ẩn danh';
+    final userName = user?.name ?? 'Anonymous user';
     final userPhotoUrl = user?.photoUrl ?? 'https://i.pravatar.cc/150?u=${review.userId}';
 
     return Padding(
@@ -1043,7 +982,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
           return Center(
             child: Column(
               children: [
-                Text('Chưa có đánh giá nào.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                Text('No reviews yet.', style: TextStyle(fontSize: 16, color: Colors.grey)),
                 SizedBox(height: 16),
                 Material(
                   borderRadius: BorderRadius.circular(12),
@@ -1077,7 +1016,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                           Icon(Icons.rate_review, size: 20, color: Colors.white),
                           SizedBox(width: 8),
                           Text(
-                            'Viết đánh giá',
+                            'Write a review',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w600,
@@ -1104,12 +1043,12 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
             return Center(
               child: Column(
               children: [
-                Text('Chưa có đánh giá nào.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                Text('No reviews yet.', style: TextStyle(fontSize: 16, color: Colors.grey)),
                 SizedBox(height: 16),
                 ElevatedButton.icon(
                   onPressed: _showReviewDialog,
                   icon: Icon(Icons.rate_review),
-                  label: Text('Viết đánh giá'),
+                  label: Text('Write a review'),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
                 )
               ],
@@ -1147,12 +1086,12 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Đánh giá (${reviews.length})',
+                      'Evaluate (${reviews.length})',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     TextButton(
                       onPressed: _showReviewDialog,
-                      child: Text('Viết đánh giá'),
+                      child: Text('Write a review'),
                       style: TextButton.styleFrom(foregroundColor: Colors.pink),
                     )
                   ],
@@ -1172,7 +1111,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Mẫu nail khác',
+          'Other nail designs',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 16),
@@ -1237,7 +1176,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
             Text(averageRating.toStringAsFixed(1),
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
             SizedBox(width: 8),
-            Text("(${reviews.length} Đánh giá)",
+            Text("(${reviews.length} Evaluate)",
                 style: TextStyle(color: Colors.grey, fontSize: 14)),
           ],
         );
@@ -1324,7 +1263,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
                         _buildVoucherSection(),
                         SizedBox(height: 30),
                         Text(
-                          'Thông tin chi tiết',
+                          'Detailed information',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 10),
@@ -1392,7 +1331,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
               onTap: _handleBooking,
               child: const Center(
                 child: Text(
-                  'ĐẶT LỊCH NGAY',
+                  'BOOK NOW',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -1414,19 +1353,19 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
     if (widget.store == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Không tìm thấy thông tin cửa hàng'),
+          content: Text('Store information not found.'),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    print('Chat với cửa hàng: ${widget.store!.name}');
+    print('Chat with the store: ${widget.store!.name}');
 
     // Có thể mở màn hình chat hoặc liên kết Zalo
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Liên hệ: ${widget.store!.hotline}'),
+        content: Text('Contact: ${widget.store!.hotline}'),
         backgroundColor: Colors.black87,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
@@ -1461,7 +1400,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
       print('Error navigating to BookingScreen: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Không thể mở màn hình đặt lịch: $e'),
+          content: Text('Unable to open the scheduling screen: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -1579,7 +1518,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
             ),
             child: const Center(
               child: Text(
-                'Chưa có đánh giá nào',
+                'No reviews yet.',
                 style: TextStyle(color: Colors.grey),
               ),
             ),

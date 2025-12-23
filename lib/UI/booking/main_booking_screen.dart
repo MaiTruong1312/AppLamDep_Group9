@@ -44,7 +44,7 @@ class _MainBookingScreenState extends State<MainBookingScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Đặt Lịch',
+          'Booking',
           style: TextStyle(
             color: Colors.black87,
             fontSize: 20,
@@ -113,7 +113,7 @@ class _MainBookingScreenState extends State<MainBookingScreen> {
             // Nút thứ cấp - Xem lịch sử
             _buildSecondaryButton(
               icon: Icons.history,
-              title: 'XEM LỊCH SỬ ĐẶT LỊCH',
+              title: 'VIEW BOOKING HISTORY',
               onPressed: _viewBookingHistory,
             ),
 
@@ -122,20 +122,20 @@ class _MainBookingScreenState extends State<MainBookingScreen> {
             // Features
             _buildFeatureItem(
               icon: Icons.brush,
-              title: '1000+ Mẫu nail',
-              subtitle: 'Cập nhật hàng tuần',
+              title: '1000+ Nail Designs',
+              subtitle: 'Weekly updates',
             ),
 
             _buildFeatureItem(
               icon: Icons.verified,
-              title: 'Thợ nail chuyên nghiệp',
-              subtitle: 'Được đào tạo bài bản',
+              title: 'Professional nail technician',
+              subtitle: 'Well-trained',
             ),
 
             _buildFeatureItem(
               icon: Icons.schedule,
-              title: 'Đặt lịch linh hoạt',
-              subtitle: '24/7, hủy miễn phí',
+              title: 'Flexible scheduling',
+              subtitle: '24/7, free cancellation',
             ),
 
             const SizedBox(height: 60),

@@ -74,7 +74,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
     if (_currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vui lòng đăng nhập để thêm vào yêu thích'),
+          content: Text('Please log in to add to favorites.'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -99,7 +99,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
           transaction.delete(wishlistRef);
           transaction.update(nailRef, {'likes': currentLikes - 1});
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã xóa khỏi yêu thích')),
+            const SnackBar(content: Text('Removed from favorites')),
           );
         } else {
           transaction.set(wishlistRef, {
@@ -112,13 +112,13 @@ class _CollectionScreenState extends State<CollectionScreen> {
           });
           transaction.update(nailRef, {'likes': currentLikes + 1});
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã thêm vào yêu thích')),
+            const SnackBar(content: Text('Added to favorites')),
           );
         }
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Có lỗi xảy ra')),
+        const SnackBar(content: Text('An error occurred.')),
       );
     }
   }
@@ -332,12 +332,12 @@ class _CollectionScreenState extends State<CollectionScreen> {
           const Icon(Icons.store_outlined, size: 64, color: Colors.grey),
           const SizedBox(height: 16),
           const Text(
-            'Không tìm thấy thông tin cửa hàng',
+            'Store information not found.',
             style: TextStyle(fontSize: 16, color: Colors.grey),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Vui lòng kiểm tra kết nối hoặc thử lại sau',
+            'Please check your connection or try again later.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey),
           ),
@@ -346,7 +346,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
             onPressed: () => setState(() {
               _storesFuture = _loadStores();
             }),
-            child: const Text('Tải lại'),
+            child: const Text('Loading'),
           ),
         ],
       ),

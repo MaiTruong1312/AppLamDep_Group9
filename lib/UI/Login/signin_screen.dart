@@ -222,7 +222,7 @@ class _SignInScreenState extends State<SignInScreen> {
       // Đăng nhập thất bại (hoặc bị hủy)
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đăng nhập không thành công hoặc bị hủy.')),
+          const SnackBar(content: Text('Login failed or cancelled.')),
         );
       }
     }

@@ -46,13 +46,13 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
     if (value) {
       bool canCheck = await auth.canCheckBiometrics || await auth.isDeviceSupported();
       if (!canCheck) {
-        _showErrorSnackBar("Thiết bị không hỗ trợ phương thức này.");
+        _showErrorSnackBar("This device does not support this method.");
         return;
       }
 
       try {
         bool didAuthenticate = await auth.authenticate(
-          localizedReason: 'Xác thực để bật đăng nhập bằng ${type == 'face' ? 'Face ID' : 'vân tay'}',
+          localizedReason: 'Authenticate to enable login using ${type == 'face' ? 'Face ID' : 'fingerprint'}}',
           options: const AuthenticationOptions(biometricOnly: true, stickyAuth: true),
         );
 
@@ -66,7 +66,7 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
           }
         }
       } catch (e) {
-        _showErrorSnackBar("Lỗi xác thực: $e");
+        _showErrorSnackBar("Authentication error: $e");
       }
     } else {
       if (type == 'fingerprint') {
@@ -91,12 +91,12 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text("Delete Account"),
-        content: const Text("Hành động này sẽ xóa vĩnh viễn tài khoản của bạn. Bạn có chắc không?"),
+        content: const Text("This action will permanently delete your account. Are you sure?"),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Hủy")),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("Xóa", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: const Text("Delete", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -110,7 +110,7 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
           Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const SignInScreen()), (route) => false);
         }
       } on FirebaseAuthException catch (e) {
-        _showErrorSnackBar(e.message ?? "Lỗi xảy ra.");
+        _showErrorSnackBar(e.message ?? "An error occurred.");
       }
     }
   }
@@ -137,7 +137,7 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           // Phần 1: Các nút gạt
-          _buildToggleItem("Biometric ID (Vân tay)", biometricId, (v) => _toggleBiometric(v, 'fingerprint')),
+          _buildToggleItem("Biometric ID ", biometricId, (v) => _toggleBiometric(v, 'fingerprint')),
           _buildToggleItem("Face ID", faceId, (v) => _toggleBiometric(v, 'face')),
           _buildToggleItem("SMS Authenticator", smsAuth, (v) => setState(() => smsAuth = v)),
           _buildToggleItem("Google Authenticator", googleAuth, (v) => setState(() => googleAuth = v)),
@@ -152,14 +152,14 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
 
           _buildNavItem(
               "Device Management",
-              subtitle: "Quản lý các thiết bị đã đăng nhập.",
+              subtitle: "Manage logged-in devices.",
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const DeviceManagementScreen()))
           ),
 
           _buildNavItem(
               "Delete Account",
               isDestructive: true,
-              subtitle: "Xóa vĩnh viễn dữ liệu tài khoản của bạn.",
+              subtitle: "Permanently delete your account data.",
               onTap: _handleDeleteAccount
           ),
 

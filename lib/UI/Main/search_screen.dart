@@ -19,7 +19,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final BehaviorSubject<String> _searchSubject = BehaviorSubject<String>();
   Stream<SearchResult>? _resultsStream;
   List<String> _recentSearches = [];
-  List<String> _popularSearches = ['New', 'Hot Trend', 'Best Choice', 'cưới', 'hàn quốc'];
+  List<String> _popularSearches = ['New', 'Hot Trend', 'Best Choice'];
   List<String> _searchSuggestions = [];
   bool _showSuggestions = false;
   SearchCategory _selectedCategory = SearchCategory.all;
@@ -546,11 +546,11 @@ class _SearchScreenState extends State<SearchScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_recentSearches.isNotEmpty) ...[
-            _buildSectionTitle('Tìm kiếm gần đây'),
+            _buildSectionTitle('Recent searches'),
             _buildRecentSearches(),
             const Divider(height: 32),
           ],
-          _buildSectionTitle('Tìm kiếm phổ biến'),
+          _buildSectionTitle('Popular searches'),
           _buildPopularSearches(),
           const Divider(height: 32),
           _buildSearchTips(),
@@ -625,9 +625,9 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          _buildTipItem('🔍', 'Tìm theo tên mẫu nail, cửa hàng'),
-          _buildTipItem('🏷️', 'Tìm theo tags: "gel", "đính đá", "french"'),
-          _buildTipItem('⭐', 'Tìm mẫu nổi bật: "Best Choice", "Trending"'),
+          _buildTipItem('🔍', 'Search by nail design name, store'),
+          _buildTipItem('🏷️', 'Search by tags: "gel", "rhinestones", "French"'),
+          _buildTipItem('⭐', 'Find featured patterns: "Best Choice", "Trending"'),
         ],
       ),
     );
@@ -663,14 +663,14 @@ class _SearchScreenState extends State<SearchScreen> {
           Icon(Icons.search_off, size: 80, color: Colors.grey.shade300),
           const SizedBox(height: 16),
           Text(
-            'Không tìm thấy kết quả cho "${_searchController.text}"',
+            'No results found for "${_searchController.text}"',
             style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              'Thử các từ khóa khác như:',
+              'Try other keywords such as:',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
             ),
@@ -698,7 +698,7 @@ class _SearchScreenState extends State<SearchScreen> {
     if (_selectedCategory == SearchCategory.all || _selectedCategory == SearchCategory.nails) {
       if (result.nails.isNotEmpty) {
         content.addAll([
-          _buildResultHeader('Mẫu Nail (${result.nails.length})'),
+          _buildResultHeader('Stone pattern (${result.nails.length})'),
           _buildNailGrid(result.nails),
         ]);
       }
@@ -707,7 +707,7 @@ class _SearchScreenState extends State<SearchScreen> {
     if (_selectedCategory == SearchCategory.all || _selectedCategory == SearchCategory.stores) {
       if (result.stores.isNotEmpty) {
         content.addAll([
-          _buildResultHeader('Cửa Hàng (${result.stores.length})'),
+          _buildResultHeader('Store (${result.stores.length})'),
           _buildStoreList(result.stores),
         ]);
       }
@@ -781,9 +781,9 @@ class _SearchScreenState extends State<SearchScreen> {
 }
 
 enum SearchCategory {
-  all('Tất cả'),
-  nails('Mẫu Nail'),
-  stores('Cửa Hàng');
+  all('All'),
+  nails('Stone pattern'),
+  stores('Store');
 
   final String displayName;
   const SearchCategory(this.displayName);

@@ -86,10 +86,10 @@ class _StoreCardState extends State<StoreCard> {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Đã xóa khỏi danh sách yêu thích'),
+              content: const Text('Removed from favorites list'),
               duration: const Duration(seconds: 1),
               action: SnackBarAction(
-                label: 'Hoàn tác',
+                label: 'Undo',
                 onPressed: () => _undoBookmarkRemoval(),
               ),
             ),
@@ -107,7 +107,7 @@ class _StoreCardState extends State<StoreCard> {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Đã thêm vào danh sách yêu thích'),
+              content: Text('Added to favorites list.'),
               duration: Duration(seconds: 1),
             ),
           );
@@ -119,7 +119,7 @@ class _StoreCardState extends State<StoreCard> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: ${e.toString()}'),
+            content: Text('ERROR: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -153,15 +153,11 @@ class _StoreCardState extends State<StoreCard> {
 
   @override
   Widget build(BuildContext context) {
-    final String name = widget.storeData['name'] ?? 'Chưa có tên';
-    final String address = widget.storeData['address'] ?? 'Chưa có địa chỉ';
+    final String name = widget.storeData['name'] ?? 'No name yet';
+    final String address = widget.storeData['address'] ?? 'No address available';
     final String imgUrl = widget.storeData['img_url']?.toString() ?? '';
     final double? rating = widget.storeData['rating']?.toDouble();
     final int? reviewCount = widget.storeData['review_count']?.toInt();
-
-    // DEBUG: Kiểm tra data
-    // print('StoreCard - ID: ${widget.storeId}, Name: $name, Image: $imgUrl');
-
     if (widget.isSearchResult) {
       return _buildSearchResultCard(name, address, imgUrl, rating, reviewCount);
     }

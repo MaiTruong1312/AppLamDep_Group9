@@ -23,7 +23,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
     decimalDigits: 0,
   );
 
-  // Lưu trữ tạm thời cho UI
+  // Temporary storage for UI
   Map<String, List<BookingCartItem>>? _groupedByStore;
   int _storeCount = 0;
 
@@ -32,7 +32,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Danh sách đặt lịch'),
+        title: const Text('Booking List'),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFFF25278),
@@ -51,7 +51,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
               return IconButton(
                 icon: const Icon(Icons.delete_outline),
                 onPressed: _showClearAllDialog,
-                tooltip: 'Xóa tất cả',
+                tooltip: 'Clear All',
               );
             },
           ),
@@ -59,10 +59,10 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
       ),
       body: Column(
         children: [
-          // Header với thông tin chi tiết
+          // Header with details
           _buildHeader(),
 
-          // Cảnh báo đa cửa hàng (nếu có)
+          // Multi-store warning (if any)
           StreamBuilder<List<BookingCartItem>>(
             stream: _bookingCartService.getBookingCartItems(),
             builder: (context, snapshot) {
@@ -84,12 +84,12 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
             },
           ),
 
-          // Danh sách mẫu nail
+          // Nail design list
           Expanded(
             child: _buildNailList(),
           ),
 
-          // Nút tiếp tục
+          // Continue button
           _buildBottomActionBar(),
         ],
       ),
@@ -132,7 +132,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Mẫu nail đã chọn',
+                              'Selected Nail Designs',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -140,7 +140,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                               ),
                             ),
                             Text(
-                              '$count mẫu từ $storeCount cửa hàng',
+                              '$count designs from $storeCount stores',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: storeCount > 1 ? Colors.orange : Colors.grey,
@@ -177,7 +177,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Mỗi cửa hàng chỉ làm mẫu của họ. Vui lòng đặt riêng từng cửa hàng.',
+                            'Each store only does their own designs. Please book each store separately.',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.orange[700],
@@ -193,7 +193,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
             }
           }
 
-          // Default header khi không có data hoặc đang loading
+          // Default header when there is no data or it's loading
           return Row(
             children: [
               const Icon(
@@ -207,7 +207,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Mẫu nail đã chọn',
+                      'Selected Nail Designs',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -215,7 +215,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                       ),
                     ),
                     Text(
-                      '0 mẫu',
+                      '0 designs',
                       style: const TextStyle(
                         fontSize: 14,
                         color: Colors.grey,
@@ -244,7 +244,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Đang chọn từ $storeCount cửa hàng',
+                  'Selecting from $storeCount stores',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -252,7 +252,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                   ),
                 ),
                 Text(
-                  'Mỗi cửa hàng cần đặt lịch riêng',
+                  'Each store needs to be booked separately',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.orange[700],
@@ -268,7 +268,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
               minimumSize: const Size(50, 30),
             ),
             child: Text(
-              'Xem chi tiết',
+              'View Details',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -288,7 +288,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
         if (snapshot.hasError) {
           return Center(
             child: Text(
-              'Có lỗi xảy ra: ${snapshot.error}',
+              'An error occurred: ${snapshot.error}',
               style: const TextStyle(color: Colors.grey),
             ),
           );
@@ -304,7 +304,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
           return _buildEmptyState();
         }
 
-        // Nhóm items theo store để hiển thị
+        // Group items by store to display
         final groupedItems = _groupItemsByStore(items);
 
         return ListView.separated(
@@ -353,7 +353,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                 ),
               ),
               Text(
-                '${items.length} mẫu',
+                '${items.length} designs',
                 style: const TextStyle(
                   fontSize: 14,
                   color: Color(0xFFF25278),
@@ -396,7 +396,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                   children: [
                     Icon(Icons.calendar_today, size: 16),
                     SizedBox(width: 6),
-                    Text('Đặt lịch cửa hàng này'),
+                    Text('Book this store'),
                   ],
                 ),
               ),
@@ -448,7 +448,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Hiển thị ảnh local asset
+              // Display local asset image
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
@@ -526,9 +526,9 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
     );
   }
 
-// Chỉ dùng Image.asset cho local assets
+// Only use Image.asset for local assets
   Widget _buildNailImage(String imagePath) {
-    // Kiểm tra xem đường dẫn có hợp lệ không
+    // Check if the path is valid
     if (imagePath.isEmpty || !imagePath.startsWith('assets/')) {
       return _buildErrorImage();
     }
@@ -609,7 +609,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                         const Icon(Icons.store_mall_directory, size: 20),
                         const SizedBox(width: 8),
                         Text(
-                          'XEM $storeCount CỬA HÀNG ($totalCount MẪU)',
+                          'VIEW $storeCount STORES ($totalCount DESIGNS)',
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -643,8 +643,8 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                       const SizedBox(width: 8),
                       Text(
                         storeCount == 1
-                            ? 'ĐẶT LỊCH NGAY ($totalCount MẪU)'
-                            : 'QUẢN LÝ ĐẶT LỊCH',
+                            ? 'BOOK NOW ($totalCount DESIGNS)'
+                            : 'MANAGE BOOKINGS',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -680,7 +680,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
           ),
           const SizedBox(height: 24),
           const Text(
-            'Chưa có mẫu nail nào',
+            'No nail designs yet',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -691,7 +691,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              'Hãy chọn mẫu nail bạn yêu thích và thêm vào danh sách đặt lịch',
+              'Choose your favorite nail designs and add them to the booking list',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -715,7 +715,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
               children: [
                 Icon(Icons.arrow_back, size: 18),
                 SizedBox(width: 8),
-                Text('QUAY LẠI CHỌN MẪU'),
+                Text('BACK TO SELECT DESIGNS'),
               ],
             ),
           ),
@@ -793,12 +793,12 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Xóa mẫu nail'),
-          content: Text('Bạn có chắc muốn xóa "${item.nailName}" khỏi danh sách đặt lịch?'),
+          title: const Text('Delete nail design'),
+          content: Text('Are you sure you want to remove "${item.nailName}" from the booking list?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('HỦY'),
+              child: const Text('CANCEL'),
             ),
             TextButton(
               onPressed: () {
@@ -806,7 +806,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Đã xóa "${item.nailName}"'),
+                    content: Text('Removed "${item.nailName}"'),
                     backgroundColor: const Color(0xFFF25278),
                   ),
                 );
@@ -814,7 +814,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
               style: TextButton.styleFrom(
                 foregroundColor: Colors.red,
               ),
-              child: const Text('XÓA'),
+              child: const Text('DELETE'),
             ),
           ],
         );
@@ -834,16 +834,16 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Xóa tất cả'),
+          title: const Text('Delete All'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Bạn có chắc muốn xóa tất cả $count mẫu nail?'),
+              Text('Are you sure you want to delete all $count nail designs?'),
               if (storeCount > 1) ...[
                 const SizedBox(height: 8),
                 Text(
-                  '($storeCount cửa hàng sẽ bị xóa)',
+                  '($storeCount stores will be removed)',
                   style: const TextStyle(color: Colors.orange),
                 ),
               ],
@@ -852,7 +852,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('HỦY'),
+              child: const Text('CANCEL'),
             ),
             TextButton(
               onPressed: () async {
@@ -862,7 +862,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
               style: TextButton.styleFrom(
                 foregroundColor: Colors.red,
               ),
-              child: const Text('XÓA TẤT CẢ'),
+              child: const Text('DELETE ALL'),
             ),
           ],
         );
@@ -876,7 +876,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Đã xóa tất cả mẫu nail'),
+            content: Text('All nail designs have been deleted'),
             backgroundColor: Color(0xFFF25278),
           ),
         );
@@ -885,7 +885,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: $e'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -900,10 +900,10 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
     final storeCount = groupedItems.length;
 
     if (storeCount == 1) {
-      // Nếu chỉ có 1 cửa hàng, đặt lịch ngay
+      // If there is only 1 store, book immediately
       _proceedWithStore(groupedItems.keys.first, items);
     } else {
-      // Nếu có nhiều cửa hàng, hiển thị dialog lựa chọn
+      // If there are multiple stores, show a selection dialog
       _showStoreGroupingDialog();
     }
   }
@@ -924,14 +924,14 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Đặt lịch nhiều cửa hàng'),
+          title: const Text('Booking for multiple stores'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Bạn đang chọn mẫu từ nhiều cửa hàng. Mỗi cửa hàng cần đặt lịch riêng:',
+                  'You are selecting designs from multiple stores. Each store needs a separate booking:',
                   style: TextStyle(fontSize: 14),
                 ),
                 const SizedBox(height: 16),
@@ -966,7 +966,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                                       ),
                                     ),
                                     Text(
-                                      '$itemCount mẫu • ${_currencyFormat.format(totalPrice)}',
+                                      '$itemCount designs • ${_currencyFormat.format(totalPrice)}',
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey,
@@ -991,7 +991,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                                   foregroundColor: Colors.orange,
                                   side: const BorderSide(color: Colors.orange),
                                 ),
-                                child: const Text('Chỉ giữ cửa hàng này'),
+                                child: const Text('Keep this store only'),
                               ),
                               const SizedBox(width: 8),
                               ElevatedButton(
@@ -1002,7 +1002,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFF25278),
                                 ),
-                                child: const Text('Đặt lịch'),
+                                child: const Text('Book'),
                               ),
                             ],
                           ),
@@ -1016,7 +1016,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
                 const Divider(),
                 const SizedBox(height: 8),
                 const Text(
-                  'Lưu ý: Bạn có thể đặt lần lượt từng cửa hàng',
+                  'Note: You can book for each store one by one',
                   style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
@@ -1025,7 +1025,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Đóng'),
+              child: const Text('Close'),
             ),
           ],
         );
@@ -1037,7 +1037,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
     try {
       final firstItem = storeItems.first;
 
-      // Load đầy đủ thông tin store từ Firestore
+      // Load full store information from Firestore
       final storeDoc = await FirebaseFirestore.instance
           .collection('stores')
           .doc(storeId)
@@ -1047,7 +1047,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
       if (storeDoc.exists) {
         store = Store.fromFirestore(storeDoc);
       } else {
-        // Fallback nếu không tìm thấy store
+        // Fallback if store is not found
         store = Store(
           id: storeId,
           name: firstItem.storeName,
@@ -1078,7 +1078,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
       print('Error proceeding with store: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Lỗi: $e'),
+          content: Text('Error: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -1096,8 +1096,8 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Đã giữ lại mẫu của cửa hàng này'),
+          const SnackBar(
+            content: Text('Kept the designs from this store'),
             backgroundColor: Colors.green,
           ),
         );
@@ -1120,7 +1120,7 @@ class _BookingCartScreenState extends State<BookingCartScreen> {
     return grouped;
   }
 
-  // Helper method để convert BookingCartItem sang Nail
+  // Helper method to convert BookingCartItem to Nail
   Nail _convertToNail(BookingCartItem item) {
     return Nail(
       id: item.nailId,

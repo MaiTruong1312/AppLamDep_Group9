@@ -9,14 +9,18 @@ class BookingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Lấy available slots cho store và ngày
+  // --- 1. SỬA HÀM LẤY SLOT (QUAN TRỌNG NHẤT) ---
   Future<List<BookingSlot>> getAvailableSlots({
     required String storeId,
     required DateTime date,
   }) async {
     try {
-      final startOfDay = DateTime(date.year, date.month, date.day);
+      // Reset về đầu ngày và cuối ngày
+      final startOfDay = DateTime(date.year, date.month, date.day, 0, 0, 0);
       final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+
+      print('🔍 Đang tìm slot Store: $storeId');
+      print('   📅 Ngày: $startOfDay -> $endOfDay');
 
       final snapshot = await _firestore
           .collection('booking_slots')
@@ -24,14 +28,40 @@ class BookingService {
           .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
           .where('status', isEqualTo: 'available')
-          .orderBy('timeSlot')
+      // .orderBy('timeSlot') // <--- BỎ DÒNG NÀY ĐỂ TRÁNH LỖI INDEX
+          .get();
+
+      print('✅ Tìm thấy ${snapshot.docs.length} slots.');
+
+      final slots = snapshot.docs
+          .map((doc) => BookingSlot.fromFirestore(doc))
+          .toList();
+
+      // Sắp xếp thủ công bằng code Dart (An toàn hơn)
+      slots.sort((a, b) => a.timeSlot.compareTo(b.timeSlot));
+
+      return slots;
+    } catch (e) {
+      print('❌ Lỗi lấy slot: $e');
+      return [];
+    }
+  }
+
+  // --- 2. CẬP NHẬT HÀM LẤY SERVICE (THEO LOGIC MỚI storeIds) ---
+  Future<List<Service>> getStoreServices(String storeId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('services')
+          .where('storeIds', arrayContains: storeId) // Sửa thành arrayContains
+          .where('isActive', isEqualTo: true)
+      // .orderBy('position') // Tạm bỏ nếu chưa có index
           .get();
 
       return snapshot.docs
-          .map((doc) => BookingSlot.fromFirestore(doc))
+          .map((doc) => Service.fromFirestore(doc))
           .toList();
     } catch (e) {
-      print('Error getting available slots: $e');
+      print('Error getting store services: $e');
       return [];
     }
   }
@@ -51,25 +81,6 @@ class BookingService {
           .map((doc) => Appointment.fromFirestore(doc))
           .toList();
     });
-  }
-
-  // Lấy services của store
-  Future<List<Service>> getStoreServices(String storeId) async {
-    try {
-      final snapshot = await _firestore
-          .collection('services')
-          .where('storeId', isEqualTo: storeId)
-          .where('isActive', isEqualTo: true)
-          .orderBy('position')
-          .get();
-
-      return snapshot.docs
-          .map((doc) => Service.fromFirestore(doc))
-          .toList();
-    } catch (e) {
-      print('Error getting store services: $e');
-      return [];
-    }
   }
 
   // Tạo appointment mới

@@ -48,7 +48,7 @@ class _MainLoginScreenState extends State<MainLoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Đăng nhập không thành công hoặc bị hủy.'),
+            content: Text('Login failed or cancelled.'),
             backgroundColor: Colors.red,
           ),
         );

@@ -19,7 +19,7 @@ class _CouponsScreenState extends State<CouponsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Ưu đãi Pionails',
+        title: const Text('Pioneers offers',
             style: TextStyle(color: Color(0xFF313235), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -35,13 +35,13 @@ class _CouponsScreenState extends State<CouponsScreen> {
             .where('isActive', isEqualTo: true)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return const Center(child: Text('Lỗi tải dữ liệu'));
+          if (snapshot.hasError) return const Center(child: Text('Data loading error'));
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: Color(0xFFF25278)));
           }
 
           final docs = snapshot.data!.docs;
-          if (docs.isEmpty) return const Center(child: Text('Hiện không có mã giảm giá nào.'));
+          if (docs.isEmpty) return const Center(child: Text('There are currently no discount codes available.'));
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -52,8 +52,8 @@ class _CouponsScreenState extends State<CouponsScreen> {
               final bool isCopied = _copiedStatus[docId] ?? false;
 
               String displayValue = data['discountType'] == "PERCENTAGE"
-                  ? "Giảm ${data['discountValue']}%"
-                  : "Giảm ${NumberFormat.compact().format(data['discountValue'])}đ";
+                  ? "Discount ${data['discountValue']}%"
+                  : "Discount ${NumberFormat.compact().format(data['discountValue'])}\$";
 
               DateTime expiry = (data['expiryDate'] as Timestamp).toDate();
 
@@ -143,14 +143,14 @@ class _CouponsScreenState extends State<CouponsScreen> {
                                 // 3. Thông báo cho người dùng
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Đã sao chép mã ${data['code']}'),
+                                    content: Text('Code has been copied. ${data['code']}'),
                                     duration: const Duration(seconds: 1),
                                     backgroundColor: const Color(0xFFF25278),
                                   ),
                                 );
                               },
                               child: Text(
-                                isCopied ? 'Đã chép' : 'Sao chép',
+                                isCopied ? 'Copied' : 'Copy',
                                 style: TextStyle(
                                     fontSize: 12,
                                     color: isCopied ? Colors.grey : const Color(0xFFF25278),

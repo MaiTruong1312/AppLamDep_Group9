@@ -50,7 +50,7 @@ class Coupon {
       usageLimit: (data['usageLimit'] as int?) ?? 0,
       usedCount: (data['usedCount'] as int?) ?? 0,
       isActive: data['isActive'] ?? false,
-      applicableCategories: List<String>.from(data['applicableCategories'] ?? []),
+      applicableCategories: List<String>.from(data['applicableServiceCategories'] ?? []),
       targetUsers: List<String>.from(data['targetUsers'] ?? []),
       isFirstBookingOnly: data['isFirstBookingOnly'] ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),

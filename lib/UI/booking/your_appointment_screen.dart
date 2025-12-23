@@ -6,6 +6,7 @@ import 'package:applamdep/UI/booking/booking_screen.dart';
 import 'package:applamdep/models/appointment_model.dart';
 import 'package:applamdep/models/store_model.dart';
 import 'package:applamdep/models/nail_model.dart';
+import 'package:applamdep/UI/booking/appointment_detail_screen.dart'; // Thêm import này
 
 class YourAppointmentScreen extends StatefulWidget {
   const YourAppointmentScreen({super.key});
@@ -43,7 +44,6 @@ class _YourAppointmentScreenState extends State<YourAppointmentScreen> {
     });
   }
 
-  // lib/UI/your_appointment_screen.dart
   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
@@ -97,7 +97,6 @@ class _YourAppointmentScreenState extends State<YourAppointmentScreen> {
         _isLoading = false;
       });
 
-      // Hiển thị thông báo lỗi thân thiện
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -114,6 +113,7 @@ class _YourAppointmentScreenState extends State<YourAppointmentScreen> {
       }
     }
   }
+
   // Các helper methods
   String _getStatusText(String status) {
     const statusMap = {
@@ -284,286 +284,336 @@ class _YourAppointmentScreenState extends State<YourAppointmentScreen> {
     final storeName = store?.name ?? 'Cửa hàng không xác định';
     final storeAddress = store?.address ?? '';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header với trạng thái và ngày
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Badge trạng thái
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(appointment.status).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: _getStatusColor(appointment.status),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _getStatusIcon(appointment.status),
-                        size: 14,
+    return GestureDetector(
+      onTap: () {
+        // Điều hướng đến trang chi tiết
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AppointmentDetailScreen(
+              appointmentId: appointment.id,
+            ),
+          ),
+        );
+      },
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 16),
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header với trạng thái và ngày
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Badge trạng thái
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(appointment.status).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
                         color: _getStatusColor(appointment.status),
+                        width: 1.5,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        _getStatusText(appointment.status),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _getStatusIcon(appointment.status),
+                          size: 14,
                           color: _getStatusColor(appointment.status),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Ngày đặt lịch
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      appointment.formattedDate,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    Text(
-                      _formatTimeSlot(appointment.timeSlot),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Thông tin cửa hàng
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.store_outlined, size: 20, color: Color(0xFFF25278)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                        const SizedBox(width: 6),
                         Text(
-                          storeName,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                          _getStatusText(appointment.status),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: _getStatusColor(appointment.status),
                           ),
                         ),
-
-                        if (storeAddress.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            storeAddress,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 16),
-
-            // Danh sách thiết kế nail
-            if (appointment.nailDesigns.isNotEmpty) ...[
-              const Text(
-                'Thiết kế nail đã chọn:',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              ...appointment.nailDesigns
-                  .asMap()
-                  .entries
-                  .map((entry) => _buildNailDesignItem(entry.value, entry.key))
-                  .toList(),
-            ],
-
-            // Dịch vụ bổ sung
-            if (appointment.additionalServices.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              const Text(
-                'Dịch vụ bổ sung:',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: appointment.additionalServices.map((service) {
-                  return Chip(
-                    label: Text(
-                      '${service.serviceName} (x${service.quantity})',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    backgroundColor: Colors.blue.shade50,
-                    side: BorderSide(color: Colors.blue.shade100),
-                  );
-                }).toList(),
-              ),
-            ],
-
-            const SizedBox(height: 20),
-
-            // Tổng thanh toán
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+                  // Ngày đặt lịch
                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      const Text(
-                        'Tổng thanh toán',
-                        style: TextStyle(
+                      Text(
+                        appointment.formattedDate,
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: Colors.black87,
                         ),
                       ),
 
-                      if (appointment.discountAmount > 0) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          'Đã giảm ${_formatCurrency(appointment.discountAmount)}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.green,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (appointment.discountAmount > 0) ...[
-                        Text(
-                          _formatCurrency(appointment.totalPrice),
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                            decoration: TextDecoration.lineThrough,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                      ],
+                      const SizedBox(height: 4),
 
                       Text(
-                        _formatCurrency(appointment.finalPrice),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFF25278),
+                        _formatTimeSlot(appointment.timeSlot),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
                         ),
                       ),
                     ],
                   ),
                 ],
               ),
-            ),
 
-            // Ghi chú của khách hàng
-            if (appointment.customerNotes != null &&
-                appointment.customerNotes!.isNotEmpty) ...[
               const SizedBox(height: 16),
+
+              // Thông tin cửa hàng
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.note_outlined, size: 18, color: Colors.blue),
+                    const Icon(Icons.store_outlined, size: 20, color: Color(0xFFF25278)),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Ghi chú của bạn:',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.blue,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
                           Text(
-                            appointment.customerNotes!,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.blue[800],
+                            storeName,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
                             ),
                           ),
+
+                          if (storeAddress.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              storeAddress,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
+
+              const SizedBox(height: 16),
+
+              // Xem trước thiết kế nail
+              if (appointment.nailDesigns.isNotEmpty) ...[
+                const Text(
+                  'Thiết kế nail:',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Hiển thị tối đa 2 mẫu nail
+                ...appointment.nailDesigns
+                    .take(2)
+                    .toList()
+                    .asMap()
+                    .entries
+                    .map((entry) => _buildNailDesignItem(entry.value, entry.key))
+                    .toList(),
+
+                // Nếu có nhiều hơn 2 mẫu, hiển thị thông báo
+                if (appointment.nailDesigns.length > 2) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.more_horiz,
+                        size: 20,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${appointment.nailDesigns.length - 2} thiết kế khác',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+
+              // Xem trước dịch vụ bổ sung
+              if (appointment.additionalServices.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.spa,
+                      size: 16,
+                      color: Colors.blue.shade600,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${appointment.additionalServices.length} dịch vụ bổ sung',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.blue.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+
+              const SizedBox(height: 20),
+
+              // Tổng thanh toán
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Tổng thanh toán',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+
+                        if (appointment.discountAmount > 0) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Đã giảm ${_formatCurrency(appointment.discountAmount)}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (appointment.discountAmount > 0) ...[
+                          Text(
+                            _formatCurrency(appointment.totalPrice),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                        ],
+
+                        Text(
+                          _formatCurrency(appointment.finalPrice),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFF25278),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Ghi chú ngắn
+              if (appointment.customerNotes != null &&
+                  appointment.customerNotes!.isNotEmpty) ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.note_outlined,
+                      size: 16,
+                      color: Colors.blue.shade600,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        appointment.customerNotes!.length > 50
+                            ? '${appointment.customerNotes!.substring(0, 50)}...'
+                            : appointment.customerNotes!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.blue.shade800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+
+              // Nút xem chi tiết
+              Align(
+                alignment: Alignment.centerRight,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF25278).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Xem chi tiết',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.pink.shade700,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 12,
+                        color: Colors.pink.shade700,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
-          ],
+          ),
         ),
       ),
     );

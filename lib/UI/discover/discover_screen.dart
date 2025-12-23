@@ -67,7 +67,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   });
                 },
                 decoration: InputDecoration(
-                  hintText: 'Tìm kiếm mẫu nail, màu sắc, store...',
+                  hintText: 'Search for nail designs, colors, stores...',
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.filter_list),
@@ -94,7 +94,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Công cụ',
+                    'Tools',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
@@ -140,7 +140,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           iconColor: const Color(0xFFF25278),
                           bgIcon: const Color(0xFFFFE4E8),
                           title: 'AR Nail Try-on',
-                          subtitle: 'Thử mẫu nail ngay trên tay bạn bằng camera',
+                          subtitle: 'Try out nail designs right on your hand using the camera.',
                           onTap: () {
                             Navigator.push(
                               context,
@@ -157,7 +157,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           iconColor: Colors.blue,
                           bgIcon: const Color(0xFFE3F2FD),
                           title: 'AI Nail Assistant',
-                          subtitle: 'Gợi ý mẫu nail phù hợp với phong cách của bạn',
+                          subtitle: 'Suggestions for nail designs that suit your style.',
                           onTap: () {
                             Navigator.push(
                               context,
@@ -182,7 +182,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Hot Trends Tháng 12/2025',
+                    'Hot Trends for December 2025',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
@@ -213,10 +213,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
-                return SliverToBoxAdapter(child: Center(child: Text('Lỗi: ${snapshot.error}')));
+                return SliverToBoxAdapter(child: Center(child: Text('ERROR: ${snapshot.error}')));
               }
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const SliverToBoxAdapter(child: Center(child: Text('Chưa có mẫu nail nào')));
+                return const SliverToBoxAdapter(child: Center(child: Text('No nail designs available yet.')));
               }
 
               final List<Nail> nails = snapshot.data!.docs
@@ -406,7 +406,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 10),
                       ),
                       child: const Text(
-                        'Đặt lịch ngay',
+                        'Book your appointment now',
                         style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                       ),
                     ),

@@ -146,35 +146,35 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
       _quickOptions = [
         {
           "icon": Icons.auto_awesome,
-          "text": "Gợi ý mẫu nail đẹp",
+          "text": "Suggestions for beautiful nail designs",
           "colors": [Color(0xFFFF9A9E), Color(0xFFFAD0C4)],
           "category": "suggestion",
           "priority": 1,
         },
         {
           "icon": Icons.palette,
-          "text": "Màu nail hợp với da tôi",
+          "text": "The nail color suits my skin tone.",
           "colors": [Color(0xFFa18cd1), Color(0xFFfbc2eb)],
           "category": "color_analysis",
           "priority": 2,
         },
         {
           "icon": Icons.camera_alt,
-          "text": "Phân tích ảnh móng",
+          "text": "Nail image analysis",
           "colors": [Color(0xFF4facfe), Color(0xFF00f2fe)],
           "category": "image_analysis",
           "priority": 3,
         },
         {
           "icon": Icons.calendar_today,
-          "text": "Đặt lịch làm nail",
+          "text": "Book a nail appointment",
           "colors": [Color(0xFF43e97b), Color(0xFF38f9d7)],
           "category": "booking",
           "priority": 4,
         },
         {
           "icon": Icons.shopping_bag,
-          "text": "Sản phẩm đề xuất",
+          "text": "Recommended product",
           "colors": [Color(0xFFfa709a), Color(0xFFfee140)],
           "category": "products",
           "priority": 5,
@@ -186,7 +186,7 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
   void _addWelcomeMessage() {
     Future.delayed(Duration(milliseconds: 500), () {
       _addAIMessage(
-        "Chào ${_userProfile['name']}! 👋\nTôi là Nail Assistant AI - trợ lý thông minh của bạn!\n\n🎨 Tôi có thể:\n• Phân tích màu da & đề xuất màu nail phù hợp\n• Nhận diện hình ảnh móng tay của bạn\n• Gợi ý mẫu nail theo sở thích\n• Tư vấn sản phẩnail care\n• Đặt lịch làm nail trực tiếp\n\nBạn muốn bắt đầu từ đâu?",
+        "Hi ${_userProfile['name']}! 👋\nI am Nail Assistant AI - your smart assistant.!\n\n🎨 I can:\n• Analyze your skin tone & suggest suitable nail colors\n• Identify your nail shape\n• Suggest nail designs based on your preferences\n• Advise on nail care products\n• Schedule nail appointments directly\n\nWhere do you want to start?",
         type: "welcome",
         actions: [
           {"text": "🎨 Phân tích màu da", "action": "skin_analysis"},
@@ -338,7 +338,7 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
-                        _isLoading ? "Đang suy nghĩ..." : "Trực tuyến",
+                        _isLoading ? "Thinking..." : "Online",
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 11,
@@ -468,7 +468,7 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
 
   // ================== USER PROFILE CARD ==================
   bool _showUserProfileCard() {
-    return messages.length <= 3 && _userProfile['name'] != 'Khách';
+    return messages.length <= 3 && _userProfile['name'] != 'Guest';
   }
 
   Widget _buildPreferenceChip(String style) {
@@ -633,7 +633,7 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
               Icon(Icons.auto_awesome, color: Colors.white, size: 20),
               SizedBox(width: 8),
               Text(
-                "PHÂN TÍCH ẢNH AI",
+                "AI Image Analysis",
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -644,7 +644,7 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
           ),
           SizedBox(height: 12),
           Text(
-            "🔍 AI đã phân tích ảnh móng của bạn:",
+            "🔍 AI has analyzed your nail image:",
             style: TextStyle(color: Colors.white, fontSize: 13),
           ),
           SizedBox(height: 8),
@@ -657,7 +657,7 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
               Expanded(
                 child: ElevatedButton.icon(
                   icon: Icon(Icons.recommend),
-                  label: Text("Đề xuất mẫu"),
+                  label: Text("Sample proposal"),
                   onPressed: () => _suggestDesignsFromAnalysis(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
@@ -679,10 +679,10 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
 
   List<Widget> _buildAnalysisResults() {
     return [
-      _buildAnalysisRow("📏 Chiều dài móng", "Ngắn", 85),
-      _buildAnalysisRow("🎨 Màu phù hợp", "Pastel, Nude", 90),
-      _buildAnalysisRow("💎 Đề xuất kiểu", "French, Minimal", 80),
-      _buildAnalysisRow("⭐ Tình trạng móng", "Khỏe", 95),
+      _buildAnalysisRow("📏 Nail length", "Short", 85),
+      _buildAnalysisRow("🎨 Matching colors", "Pastel, Nude", 90),
+      _buildAnalysisRow("💎 Suggest style", "French, Minimal", 80),
+      _buildAnalysisRow("⭐ Nail condition", "Strong", 95),
     ];
   }
 
@@ -725,17 +725,17 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
   bool _shouldShowSkinAnalysis() {
     return messages.any((msg) =>
     msg["type"] == "skin_analysis_request" ||
-        (msg["text"] as String).contains("màu da"));
+        (msg["text"] as String).contains("color"));
   }
 
   String _getSkinToneName(String tone) {
     switch (tone) {
-      case 'fair': return 'sáng';
-      case 'light': return 'sáng nhẹ';
-      case 'warm_medium': return 'trung bình ấm';
+      case 'fair': return 'fair';
+      case 'light': return 'light';
+      case 'warm_medium': return 'warm_medium';
       case 'olive': return 'olive';
-      case 'deep': return 'đậm';
-      default: return 'trung bình';
+      case 'deep': return 'deep';
+      default: return 'normal';
     }
   }
 
@@ -786,7 +786,7 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            "Đang ghi âm...",
+            "Recording in progress...",
             style: TextStyle(color: Colors.white, fontSize: 16),
           ),
           SizedBox(height: 12),
@@ -818,7 +818,7 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
           ),
           SizedBox(height: 8),
           Text(
-            "Nhấn giữ để nói, thả ra để gửi",
+            "Press and hold to speak, release to send.",
             style: TextStyle(color: Colors.white70, fontSize: 12),
           ),
           SizedBox(height: 12),
@@ -973,7 +973,7 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
                     textAlignVertical: TextAlignVertical.center, // Căn giữa chữ
                     style: const TextStyle(fontSize: 15, color: Colors.black87),
                     decoration: const InputDecoration(
-                      hintText: "Nhập câu hỏi...",
+                      hintText: "Enter your question...",
                       hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
                       border: InputBorder.none,
                       // Padding gọn gàng hơn
@@ -1003,9 +1003,9 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _buildAttachmentOption(Icons.camera_alt, "Camera", () => _pickImage(ImageSource.camera)),
-        _buildAttachmentOption(Icons.photo_library, "Thư viện", () => _pickImage(ImageSource.gallery)),
-        _buildAttachmentOption(Icons.palette, "Màu da", () => _requestSkinAnalysis()),
-        _buildAttachmentOption(Icons.calendar_today, "Đặt lịch", () => _bookAppointment()),
+        _buildAttachmentOption(Icons.photo_library, "Library", () => _pickImage(ImageSource.gallery)),
+        _buildAttachmentOption(Icons.palette, "Color", () => _requestSkinAnalysis()),
+        _buildAttachmentOption(Icons.calendar_today, "Booking", () => _bookAppointment()),
       ],
     );
   }
@@ -1342,7 +1342,7 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
     // Simple AI response logic - can be replaced with real AI
     if (query.contains("màu da") || query.contains("skin tone")) {
       return {
-        "text": "Tôi thấy bạn quan tâm đến màu sắc phù hợp với da. Dựa trên hồ sơ của bạn, tôi đề xuất các màu pastel và nude nhẹ nhàng. Bạn có muốn tôi phân tích kỹ hơn không?",
+        "text": "I see you're interested in colors that complement your skin tone. Based on your profile, I suggest soft pastel and nude shades. Would you like me to elaborate further?",
         "type": "analysis",
       };
     } else if (query.contains("ảnh") || query.contains("hình")) {
@@ -1407,12 +1407,12 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
   }
 
   void _requestSkinAnalysis() {
-    _addUserMessage("Tôi muốn phân tích màu da để chọn màu nail phù hợp", type: "skin_analysis_request");
+    _addUserMessage("I want to analyze my skin tone to choose the right nail color.", type: "skin_analysis_request");
     setState(() => _isLoading = true);
 
     Future.delayed(Duration(seconds: 1), () {
       _addAIMessage(
-        "Dựa trên phân tích, da bạn thuộc tông ${_getSkinToneName(_userProfile['skinTone'])}. Các màu nail phù hợp nhất:",
+        "Based on the analysis, your skin tone is ${_getSkinToneName(_userProfile['skinTone'])}. The most suitable nail colors:",
         type: "skin_analysis",
       );
       setState(() => _isLoading = false);
@@ -1427,13 +1427,13 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text("Chọn ảnh móng tay", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("Choose a picture of nails", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildImageOption(Icons.camera_alt, "Chụp ảnh", () => _pickImage(ImageSource.camera)),
-                _buildImageOption(Icons.photo_library, "Thư viện", () => _pickImage(ImageSource.gallery)),
+                _buildImageOption(Icons.camera_alt, "Take a photo", () => _pickImage(ImageSource.camera)),
+                _buildImageOption(Icons.photo_library, "Library", () => _pickImage(ImageSource.gallery)),
               ],
             ),
           ],
@@ -1799,7 +1799,7 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
         type: type,
       );
     } catch (e) {
-      print('Lỗi khi lưu tin nhắn: $e');
+      print('Error saving message: $e');
     }
   }
   Future<void> _pickImage(ImageSource source) async {

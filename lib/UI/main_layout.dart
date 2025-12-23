@@ -134,11 +134,11 @@ class _MainLayoutState extends State<MainLayout>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Expanded(child: _bottomItem(Icons.home, "Trang chủ", 0)),
-            Expanded(child: _bottomItem(Icons.grid_view, "Bộ sưu tập", 1)),
-            Expanded(child: _bottomItem(Icons.calendar_today, "Đặt lịch", 2)),
-            Expanded(child: _bottomItem(Icons.explore_outlined, "Khám phá", 3)),
-            Expanded(child: _bottomItem(Icons.person_outline, "Tài khoản", 4)),
+            Expanded(child: _bottomItem(Icons.home, "Home", 0)),
+            Expanded(child: _bottomItem(Icons.grid_view, "Collection", 1)),
+            Expanded(child: _bottomItem(Icons.calendar_today, "Booking", 2)),
+            Expanded(child: _bottomItem(Icons.explore_outlined, "Discover", 3)),
+            Expanded(child: _bottomItem(Icons.person_outline, "Account", 4)),
           ],
         ),
       ),
@@ -158,7 +158,7 @@ class _MainLayoutState extends State<MainLayout>
       _buildFabMenuItem(
         index: 0,
         icon: Icons.camera_alt,
-        label: 'AR Thử Nail',
+        label: 'AR',
         color: const Color(0xFF6A11CB),
         screen: const ArNailTryOnPage(),
         angle: 0,
@@ -167,7 +167,7 @@ class _MainLayoutState extends State<MainLayout>
       _buildFabMenuItem(
         index: 1,
         icon: Icons.message,
-        label: 'Tư vấn AI',
+        label: 'Chat Bot',
         color: const Color(0xFF2575FC),
         screen: const ChatBotPageV2(),
         angle: 50,
@@ -180,7 +180,7 @@ class _MainLayoutState extends State<MainLayout>
           return _buildFabMenuItem(
             index: 2,
             icon: Icons.calendar_today,
-            label: 'Danh sách đặt lịch',
+            label: 'Appointment list',
             color: const Color(0xFFF7971E),
             screen: const BookingCartScreen(),
             angle: 110,
