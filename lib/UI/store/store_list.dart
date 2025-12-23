@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:applamdep/providers/store_provider.dart';
-import 'package:applamdep/theme/app_colors.dart';
-import 'package:applamdep/theme/app_typography.dart';
-import 'store_details.dart';
-import '../../models/store_model.dart';
+import 'package:applamdep/providers/store_provider.dart'; // Quản lý trạng thái toàn cục cho Store
+import 'package:applamdep/theme/app_colors.dart'; // Bảng màu tông hồng chủ đạo
+import 'package:applamdep/theme/app_typography.dart'; // Hệ thống kiểu chữ chuẩn
+import 'store_details.dart'; // Màn hình chi tiết cửa hàng
+import '../../models/store_model.dart'; // Model dữ liệu Store
 
+/// ===========================================================================
+/// CLASS STORELIST: MÀN HÌNH HIỂN THỊ DANH SÁCH TẤT CẢ CÁC TIỆM NAIL
+/// ===========================================================================
+/// Vai trò: Hiển thị toàn bộ danh sách tiệm nail hiện có trong hệ thống,
+/// được sắp xếp dựa trên vị trí địa lý của người dùng.
 class StoreList extends StatefulWidget {
   const StoreList({super.key});
 
@@ -14,20 +19,30 @@ class StoreList extends StatefulWidget {
 }
 
 class _StoreListState extends State<StoreList> {
+
+  /// -------------------------------------------------------------------------
+  /// HÀM INITSTATE: KHỞI TẠO DỮ LIỆU BAN ĐẦU
+  /// -------------------------------------------------------------------------
+  /// Sử dụng Future.microtask để lấy dữ liệu ngay khi màn hình khởi tạo mà
+  /// không gây gián đoạn luồng dựng giao diện (UI Rendering).
   @override
   void initState() {
     super.initState();
-    // Khởi tạo lấy vị trí và danh sách tiệm ngay khi vào trang
     Future.microtask(() {
       final provider = Provider.of<StoreProvider>(context, listen: false);
+      // 1. Xác định tọa độ người dùng (Giả lập tại Học viện Ngân hàng)
+      // 2. Fetch toàn bộ dữ liệu từ Firestore và tính toán khoảng cách
       provider.fetchUserLocation().then((_) => provider.fetchAllStores());
     });
   }
 
+  /// -------------------------------------------------------------------------
+  /// HÀM BUILD: XÂY DỰNG GIAO DIỆN CHÍNH
+  /// -------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Nền xám nhạt để nổi bật các Card
+      backgroundColor: const Color(0xFFF8F9FA), // Nền xám nhạt trung tính
       appBar: AppBar(
         title: Text('All Salons', style: AppTypography.labelLG.copyWith(color: Colors.black)),
         backgroundColor: Colors.white,
@@ -38,23 +53,38 @@ class _StoreListState extends State<StoreList> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+
+      // LẮNG NGHE SỰ THAY ĐỔI DỮ LIỆU TỪ TẦNG PROVIDER
       body: Consumer<StoreProvider>(
         builder: (context, provider, child) {
+          // HIỂN THỊ HIỆU ỨNG CHỜ (LOADING) KHI ĐANG TẢI DỮ LIỆU
           if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator(color: AppColors.primary));
           }
+
+          // HIỂN THỊ THÔNG BÁO LỖI NẾU TRUY VẤN THẤT BẠI
           if (provider.error != null) {
             return Center(child: Text('Error: ${provider.error}', style: const TextStyle(color: AppColors.error500)));
           }
-          if (provider.stores.isEmpty) {
+
+          /// =================================================================
+          /// SỬA ĐỔI QUAN TRỌNG: SỬ DỤNG TOÀN BỘ DANH SÁCH CỬA HÀNG
+          /// =================================================================
+          /// Thay vì lọc .where như trước, chúng ta lấy trực tiếp provider.stores
+          /// để hiển thị mọi cửa hàng có trong cơ sở dữ liệu.
+          final allStores = provider.stores;
+
+          // XỬ LÝ TRƯỜNG HỢP DANH SÁCH TRỐNG
+          if (allStores.isEmpty) {
             return const Center(child: Text('No salons found near you.'));
           }
 
+          // HIỂN THỊ DANH SÁCH DƯỚI DẠNG DANH SÁCH CUỘN (LISTVIEW)
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: provider.stores.length,
+            itemCount: allStores.length,
             itemBuilder: (context, index) {
-              final store = provider.stores[index];
+              final store = allStores[index];
               return _buildStoreCard(context, store);
             },
           );
@@ -63,8 +93,10 @@ class _StoreListState extends State<StoreList> {
     );
   }
 
-  // --- UI COMPONENTS ---
-
+  /// -------------------------------------------------------------------------
+  /// WIDGET: _BUILDSTORECARD - THIẾT KẾ THẺ CỬA HÀNG (UI COMPONENT)
+  /// -------------------------------------------------------------------------
+  /// Sử dụng cấu trúc Row để hiển thị ảnh bên trái và thông tin bên phải.
   Widget _buildStoreCard(BuildContext context, Store store) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -73,7 +105,7 @@ class _StoreListState extends State<StoreList> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -82,6 +114,7 @@ class _StoreListState extends State<StoreList> {
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: () {
+          // ĐIỀU HƯỚNG SANG TRANG CHI TIẾT KHI NHẤN VÀO THẺ
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => StoreDetails(storeId: store.id)),
@@ -91,7 +124,7 @@ class _StoreListState extends State<StoreList> {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Ảnh đại diện tiệm với bo góc và badge trạng thái
+              // PHẦN 1: HÌNH ẢNH VÀ TRẠNG THÁI HOẠT ĐỘNG
               Stack(
                 children: [
                   ClipRRect(
@@ -102,7 +135,7 @@ class _StoreListState extends State<StoreList> {
                       child: _buildSmartImage(store.imgUrl),
                     ),
                   ),
-                  // Hiển thị trạng thái Đóng/Mở cửa
+                  // BADGE OPEN/CLOSED: TỰ ĐỘNG CẬP NHẬT THEO GIỜ HÀNH CHÍNH
                   Positioned(
                     top: 5,
                     left: 5,
@@ -121,7 +154,8 @@ class _StoreListState extends State<StoreList> {
                 ],
               ),
               const SizedBox(width: 16),
-              // Thông tin chi tiết tiệm
+
+              // PHẦN 2: THÔNG TIN Tên, Địa chỉ, Đánh giá, Khoảng cách
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +188,7 @@ class _StoreListState extends State<StoreList> {
                           style: AppTypography.textXS.copyWith(color: Colors.grey),
                         ),
                         const Spacer(),
-                        // Hiển thị khoảng cách nếu có
+                        // HIỂN THỊ KHOẢNG CÁCH KM DỰA TRÊN TỌA ĐỘ THỰC
                         Text(
                           "${store.distance.toStringAsFixed(1)} km",
                           style: AppTypography.textXS.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
@@ -171,12 +205,14 @@ class _StoreListState extends State<StoreList> {
     );
   }
 
-  // Giải quyết lỗi "No host specified" bằng cách kiểm tra path ảnh
+  /// -------------------------------------------------------------------------
+  /// HÀM PHỤ TRỢ: XỬ LÝ ẢNH THÔNG MINH (SMART IMAGE)
+  /// -------------------------------------------------------------------------
+  /// Đảm bảo ứng dụng không bị lỗi giao diện khi đường dẫn ảnh trống hoặc hỏng.
   Widget _buildSmartImage(String path) {
     if (path.isEmpty) {
       return Container(color: Colors.grey[200], child: const Icon(Icons.image_not_supported));
     }
-    // Nếu là ảnh từ Internet
     if (path.startsWith('http')) {
       return Image.network(
         path,
@@ -184,7 +220,6 @@ class _StoreListState extends State<StoreList> {
         errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
       );
     }
-    // Nếu là ảnh từ Assets cục bộ
     return Image.asset(
       path,
       fit: BoxFit.cover,

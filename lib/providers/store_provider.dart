@@ -21,6 +21,9 @@ class StoreProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   Position? get userPosition => _userPosition;
+  List<Store> get storesWithFlashSales {
+    return _stores.where((store) => store.flashsales.isNotEmpty).toList();
+  }
 
   // 1. LẤY VỊ TRÍ NGƯỜI DÙNG (Giả lập tại Học viện Ngân hàng)
   Future<void> fetchUserLocation() async {

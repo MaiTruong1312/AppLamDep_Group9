@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:applamdep/providers/store_provider.dart';
+import 'package:applamdep/providers/store_provider.dart'; // Quản lý dữ liệu tiệm toàn cục
 import '../../models/store_model.dart';
 import '../../models/review_model.dart';
 import '../../models/service_model.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_typography.dart';
+import '../../theme/app_colors.dart'; // Bảng màu thương hiệu
+import '../../theme/app_typography.dart'; // Hệ thống kiểu chữ
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+// Import các Tab con để hiển thị trong TabBarView
 import 'store_tab_most_service.dart';
 import 'store_tab_review.dart';
 import 'store_tab_portfolio.dart';
@@ -20,10 +22,13 @@ import 'chat_screen.dart';
 import 'service_details.dart';
 import 'flashsale_detail.dart';
 
-
-
+/// ===========================================================================
+/// CLASS STOREDETAILS: MÀN HÌNH CHI TIẾT CỦA MỘT CỬA HÀNG CỤ THỂ
+/// ===========================================================================
+/// Sử dụng NestedScrollView để tạo hiệu ứng cuộn mượt mà: Ảnh bìa sẽ thu nhỏ
+/// khi cuộn lên và TabBar sẽ được giữ cố định (Sticky Header).
 class StoreDetails extends StatefulWidget {
-  final String storeId;
+  final String storeId; // Nhận ID tiệm để truy vấn dữ liệu từ Firestore
   const StoreDetails({super.key, required this.storeId});
 
   @override
@@ -32,25 +37,34 @@ class StoreDetails extends StatefulWidget {
 
 class _StoreDetailsState extends State<StoreDetails> {
   final ScrollController _scrollController = ScrollController();
-  Timer? _flashSaleTimer;
-  Duration _remainingTime = const Duration(hours: 20, minutes: 0, seconds: 0);
+  Timer? _flashSaleTimer; // Bộ đếm thời gian cho Flashsale
+  Duration _remainingTime = const Duration(hours: 20, minutes: 0, seconds: 0); // Thời gian giả định
   final PageController _headerPageController = PageController();
-  int _currentImageIndex = 0;
+  int _currentImageIndex = 0; // Theo dõi vị trí ảnh hiện tại trên Header
 
-  bool isFavorite = false;
-  bool isFavoriteLoading = false;
+  bool isFavorite = false; // Trạng thái yêu thích (Lưu vào wishlist_store)
+  bool isFavoriteLoading = false; // Trạng thái chờ khi đang thực hiện lưu/xóa
+  bool _isFollowed = false; // Trạng thái theo dõi tiệm (Follow)
 
+  /// -------------------------------------------------------------------------
+  /// HÀM INITSTATE: KHỞI TẠO DỮ LIỆU KHI VÀO TRANG
+  /// -------------------------------------------------------------------------
   @override
   void initState() {
     super.initState();
-    _startCountdown();
-    // Kiểm tra trạng thái yêu thích ngay khi vào trang
-    _checkFavoriteStatus();
+    _startCountdown(); // Bắt đầu chạy bộ đếm ngược
+    _checkFavoriteStatus(); // Kiểm tra xem tiệm này đã được user yêu thích chưa
+
+    // Gọi Provider để fetch thông tin chi tiết tiệm từ Firebase
     Future.microtask(() =>
         Provider.of<StoreProvider>(context, listen: false).fetchStore(widget.storeId));
   }
 
-// Kiểm tra tiệm đã nằm trong danh sách yêu thích chưa
+  /// -------------------------------------------------------------------------
+  /// LOGIC 1: QUẢN LÝ TRẠNG THÁI YÊU THÍCH (WISHLIST)
+  /// -------------------------------------------------------------------------
+
+  // Kiểm tra tiệm đã nằm trong danh sách yêu thích của User hiện tại chưa
   Future<void> _checkFavoriteStatus() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -70,11 +84,10 @@ class _StoreDetailsState extends State<StoreDetails> {
     }
   }
 
-// Logic thêm/xóa khỏi wishlist
+  // Hàm xử lý việc Nhấn icon Trái tim: Thêm hoặc Xóa khỏi Firestore
   Future<void> _toggleFavorite() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      // Thông báo nếu người dùng chưa đăng nhập
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Vui lòng đăng nhập để lưu tiệm yêu thích")),
       );
@@ -82,12 +95,11 @@ class _StoreDetailsState extends State<StoreDetails> {
     }
 
     setState(() => isFavoriteLoading = true);
-
     final collectionRef = FirebaseFirestore.instance.collection('wishlist_store');
 
     try {
       if (isFavorite) {
-        // Xóa khỏi danh sách
+        // Nếu đã yêu thích -> Thực hiện XÓA
         final snapshot = await collectionRef
             .where('user_id', isEqualTo: user.uid)
             .where('store_id', isEqualTo: widget.storeId)
@@ -96,7 +108,7 @@ class _StoreDetailsState extends State<StoreDetails> {
           await doc.reference.delete();
         }
       } else {
-        // Thêm mới vào danh sách
+        // Nếu chưa yêu thích -> Thực hiện THÊM MỚI
         await collectionRef.add({
           'user_id': user.uid,
           'store_id': widget.storeId,
@@ -111,41 +123,99 @@ class _StoreDetailsState extends State<StoreDetails> {
     }
   }
 
-// Logic chia sẻ tiệm
+  /// -------------------------------------------------------------------------
+  /// LOGIC 2: CHIA SẺ VÀ ĐẾM NGƯỢC
+  /// -------------------------------------------------------------------------
+
   void _shareStore(Store store) {
-    // Bạn có thể sử dụng package share_plus để thực hiện chia sẻ thật
     debugPrint("Sharing store: ${store.name}");
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Đang chia sẻ tiệm ${store.name}...")),
+      SnackBar(content: Text("Đang chuẩn bị link chia sẻ tiệm ${store.name}...")),
     );
   }
 
+  // Khởi động Timer: Mỗi 1 giây sẽ trừ đi 1 giây trong bộ đếm
   void _startCountdown() {
     _flashSaleTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingTime.inSeconds > 0) {
-        setState(() => _remainingTime -= const Duration(seconds: 1));
+        if (mounted) setState(() => _remainingTime -= const Duration(seconds: 1));
       } else {
         _flashSaleTimer?.cancel();
       }
     });
   }
 
+  /// -------------------------------------------------------------------------
+  /// LOGIC 3: CHỨC NĂNG THEO DÕI (FOLLOW)
+  /// -------------------------------------------------------------------------
+
+  void _toggleFollow() {
+    setState(() => _isFollowed = !_isFollowed);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_isFollowed ? "You are now following this store!" : "Unfollowed."),
+        duration: const Duration(seconds: 1),
+        backgroundColor: AppColors.primary,
+      ),
+    );
+  }
+
+  // Xây dựng nút Follow đồng bộ với tông màu App
+  Widget _buildFollowButton() {
+    return OutlinedButton(
+      onPressed: _toggleFollow,
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: _isFollowed ? Colors.grey : AppColors.primary),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        backgroundColor: _isFollowed ? Colors.grey[100] : Colors.white,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            _isFollowed ? Icons.check : Icons.add,
+            size: 18,
+            color: _isFollowed ? Colors.grey : AppColors.primary,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _isFollowed ? "Following" : "Follow",
+            style: TextStyle(
+              color: _isFollowed ? Colors.grey : AppColors.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
-    _flashSaleTimer?.cancel();
+    _flashSaleTimer?.cancel(); // Hủy Timer để tránh rò rỉ bộ nhớ (Memory leak)
     _headerPageController.dispose();
     super.dispose();
   }
 
   String _twoDigits(int n) => n.toString().padLeft(2, '0');
 
+  /// -------------------------------------------------------------------------
+  /// HÀM BUILD CHÍNH: QUẢN LÝ TOÀN BỘ GIAO DIỆN
+  /// -------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Consumer<StoreProvider>(
       builder: (context, provider, child) {
-        if (provider.isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.primary)));
+        // HIỂN THỊ LOADING TRƯỚC KHI CÓ DỮ LIỆU
+        if (provider.isLoading) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.primary)));
+        }
+
         final store = provider.currentStore;
+        // XỬ LÝ TRƯỜNG HỢP KHÔNG TÌM THẤY TIỆM
         if (store == null) return const Scaffold(body: Center(child: Text("Cửa hàng không tồn tại")));
 
         return Scaffold(
@@ -156,35 +226,62 @@ class _StoreDetailsState extends State<StoreDetails> {
               controller: _scrollController,
               headerSliverBuilder: (context, innerBoxIsScrolled) {
                 return [
-                  _buildAppBar(store),
+                  _buildAppBar(store), // 1. Ảnh bìa và các nút chức năng
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // 2. TÊN TIỆM VÀ NÚT FOLLOW
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      store.name,
+                                      style: AppTypography.headlineLG.copyWith(fontWeight: FontWeight.w900),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text("Premium Beauty Salon", style: AppTypography.textXS.copyWith(color: Colors.grey)),
+                                  ],
+                                ),
+                              ),
+                              _buildFollowButton(),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // 3. DANH SÁCH DỊCH VỤ DƯỚI DẠNG GRID
                           _buildSectionTitle("Service Of ${store.name}"),
                           const SizedBox(height: 16),
-                          // ĐÃ SỬA: Dùng store.services (số nhiều) đúng với model
                           _buildServiceGrid(store.services),
                           const SizedBox(height: 24),
-                          _buildFlashsaleHeader(),
-                          const SizedBox(height: 12),
-                          _buildFlashsaleList(store.flashsales),
-                          const SizedBox(height: 24),
+
+                          // 4. LOGIC QUAN TRỌNG: CHỈ HIỂN THỊ FLASHSALE NẾU CÓ DỮ LIỆU
+                          if (store.flashsales.isNotEmpty) ...[
+                            _buildFlashsaleHeader(),
+                            const SizedBox(height: 12),
+                            _buildFlashsaleList(store.flashsales),
+                            const SizedBox(height: 24),
+                          ],
                         ],
                       ),
                     ),
                   ),
-                  _buildStickyTabBar(),
+                  _buildStickyTabBar(), // 5. TabBar cố định khi cuộn
                 ];
               },
+              // PHẦN NỘI DUNG CỦA TỪNG TAB
               body: TabBarView(
                 children: [
                   MostServiceTab(store: store),
                   ReviewsTab(store: store),
                   PortfolioTab(store: store),
-                  const Center(child: Text("Giftcard is comming soon")),
+                  const Center(child: Text("Giftcard is coming soon")),
                   LocationTab(store: store),
                 ],
               ),
@@ -195,8 +292,11 @@ class _StoreDetailsState extends State<StoreDetails> {
     );
   }
 
-  // --- UI COMPONENTS ---
+  /// -------------------------------------------------------------------------
+  /// CÁC THÀNH PHẦN GIAO DIỆN CON (WIDGETS)
+  /// -------------------------------------------------------------------------
 
+  // Xây dựng SliverAppBar chứa ảnh PageView và các nút Action
   SliverAppBar _buildAppBar(Store store) {
     final List<String> images = [store.imgUrl, store.imgUrl, store.imgUrl];
     return SliverAppBar(
@@ -206,17 +306,10 @@ class _StoreDetailsState extends State<StoreDetails> {
       backgroundColor: Colors.white,
       leading: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: _buildCircleAction(
-            Icons.arrow_back,
-                () => Navigator.pop(context)
-        ),
+        child: _buildCircleAction(Icons.arrow_back, () => Navigator.pop(context)),
       ),
-      // THÊM NÚT SHARE VÀ YÊU THÍCH TẠI ĐÂY
       actions: [
-        _buildCircleAction(
-            Icons.share_outlined,
-                () => _shareStore(store)
-        ),
+        _buildCircleAction(Icons.share_outlined, () => _shareStore(store)),
         const SizedBox(width: 8),
         _buildCircleAction(
           isFavorite ? Icons.favorite : Icons.favorite_border,
@@ -240,23 +333,21 @@ class _StoreDetailsState extends State<StoreDetails> {
               ),
             ),
             _buildCustomIndicator(images.length),
-            _buildContactButtons(store),
+            _buildContactButtons(store), // Các nút Chat, Call, Map
           ],
         ),
       ),
     );
   }
-  // Widget phụ trợ cho các nút bấm hình tròn trên AppBar
+
+  // Widget nút tròn mờ trên AppBar
   Widget _buildCircleAction(IconData icon, VoidCallback onTap, {Color iconColor = Colors.white, bool isLoading = false}) {
     return Center(
       child: GestureDetector(
         onTap: isLoading ? null : onTap,
         child: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3), // Nền mờ để nổi bật trên mọi màu ảnh
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), shape: BoxShape.circle),
           child: isLoading
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
               : Icon(icon, color: iconColor, size: 20),
@@ -265,11 +356,11 @@ class _StoreDetailsState extends State<StoreDetails> {
     );
   }
 
+  // Hiển thị thanh trượt chỉ báo ảnh (Dots indicator)
   Widget _buildCustomIndicator(int count) {
     return Positioned(
       bottom: 65,
-      left: 0,
-      right: 0,
+      left: 0, right: 0,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: List.generate(count, (index) {
@@ -289,13 +380,10 @@ class _StoreDetailsState extends State<StoreDetails> {
     );
   }
 
+  // Xây dựng Grid danh sách dịch vụ nhanh (Quick Services)
   Widget _buildServiceGrid(List<Service> services) {
     const Map<String, String> iconMapping = {
       "Nail Art": "assets/icons/nails.svg",
-      "Crystal Embellishment": "assets/icons/facial.svg",
-      "Airbrush Design": "assets/icons/facial.svg",
-      "3d Sculpture": "assets/icons/facial.svg",
-      "Special Occasion Nails": "assets/icons/nails.svg",
       "Gel Polish": "assets/icons/nails.svg",
       "Manicure": "assets/icons/facial.svg",
       "Medicure": "assets/icons/massage.svg",
@@ -304,12 +392,8 @@ class _StoreDetailsState extends State<StoreDetails> {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.zero, // Loại bỏ padding mặc định để thu hẹp khoảng cách
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.85, // Điều chỉnh tỷ lệ để icon to hơn, text gọn hơn
+        crossAxisCount: 4, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.85,
       ),
       itemCount: services.length,
       itemBuilder: (context, index) {
@@ -317,44 +401,22 @@ class _StoreDetailsState extends State<StoreDetails> {
         final iconPath = iconMapping[service.name];
 
         return InkWell(
-          onTap: () {
-            // Điều hướng sang trang chi tiết dịch vụ
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ServiceDetailsScreen(service: service),
-              ),
-            );
-          },
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ServiceDetailsScreen(service: service))),
           child: Column(
             children: [
               Expanded(
                 child: Container(
                   width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF9FAFB),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                  decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(20)),
                   child: Center(
                     child: iconPath != null
-                        ? SvgPicture.asset(iconPath,
-                        colorFilter: const ColorFilter.mode(AppColors.primary, BlendMode.srcIn),
-                        width: 32, height: 32)
+                        ? SvgPicture.asset(iconPath, colorFilter: const ColorFilter.mode(AppColors.primary, BlendMode.srcIn), width: 32)
                         : const Icon(Icons.spa, color: AppColors.primary, size: 32),
                   ),
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                service.name,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.textXS.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.neutral950,
-                ),
-              ),
+              Text(service.name, textAlign: TextAlign.center, maxLines: 1, style: AppTypography.textXS.copyWith(fontWeight: FontWeight.bold)),
             ],
           ),
         );
@@ -362,8 +424,7 @@ class _StoreDetailsState extends State<StoreDetails> {
     );
   }
 
-  // --- FLASH SALE & TABS ---
-
+  // Xây dựng tiêu đề đếm ngược Flashsale
   Widget _buildFlashsaleHeader() {
     String hours = _twoDigits(_remainingTime.inHours);
     String minutes = _twoDigits(_remainingTime.inMinutes.remainder(60));
@@ -375,56 +436,35 @@ class _StoreDetailsState extends State<StoreDetails> {
         const Spacer(),
         Text("Closing in ", style: AppTypography.textXS),
         const SizedBox(width: 4),
-        _buildTimeBox(hours),
-        _buildTimeDivider(),
-        _buildTimeBox(minutes),
-        _buildTimeDivider(),
+        _buildTimeBox(hours), _buildTimeDivider(),
+        _buildTimeBox(minutes), _buildTimeDivider(),
         _buildTimeBox(seconds),
       ],
     );
   }
 
+  // Danh sách các mục Flashsale trượt ngang
   Widget _buildFlashsaleList(List<Flashsale> sales) {
     return SizedBox(
-      height: 120, // Tăng nhẹ chiều cao để tránh bị cắt bóng (shadow)
+      height: 120,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16), // Thêm padding cho mượt
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: sales.length,
         itemBuilder: (context, index) {
           final sale = sales[index];
           return InkWell(
-            // 1. SỰ KIỆN NHẤN: Chuyển sang màn hình FlashSaleDetailScreen
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => FlashSaleDetailScreen(
-                    flashsale: sale,
-                    // 2. TRUYỀN THỜI GIAN: Lấy giá trị _remainingTime hiện tại của Store
-                    initialRemainingTime: _remainingTime,
-                  ),
-                ),
-              );
-            },
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (context) => FlashSaleDetailScreen(flashsale: sale, initialRemainingTime: _remainingTime),
+            )),
             child: Container(
               width: 110,
               margin: const EdgeInsets.only(right: 12, bottom: 8),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4)
-                  )
-                ],
+                color: Colors.white, borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 4))],
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: _buildSmartImage(sale.imageUrl),
-              ),
+              child: ClipRRect(borderRadius: BorderRadius.circular(16), child: _buildSmartImage(sale.imageUrl)),
             ),
           );
         },
@@ -432,7 +472,7 @@ class _StoreDetailsState extends State<StoreDetails> {
     );
   }
 
-  // --- HELPERS ---
+  // --- CÁC HÀM TRỢ GIÚP (HELPERS) ---
 
   Widget _buildTimeBox(String value) {
     return Container(
@@ -450,13 +490,10 @@ class _StoreDetailsState extends State<StoreDetails> {
   Widget _buildSmartImage(String path) {
     if (path.isEmpty) return Container(color: Colors.grey[200], child: const Icon(Icons.image_not_supported));
     if (path.startsWith('assets/')) return Image.asset(path, fit: BoxFit.cover);
-    return Image.network(
-      path,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[200], child: const Icon(Icons.broken_image)),
-    );
+    return Image.network(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image));
   }
 
+  // Xây dựng bộ nút liên hệ: Chat, Call, Map
   Widget _buildContactButtons(Store store) {
     return Positioned(
       bottom: 15,
@@ -464,32 +501,16 @@ class _StoreDetailsState extends State<StoreDetails> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Nút Chat
           _buildIconButton(Icons.chat_bubble_outline, () {
-            Navigator.push(context, MaterialPageRoute(
-                builder: (context) => ChatScreen(storeId: store.id, storeName: store.name)
-            ));
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ChatScreen(storeId: store.id, storeName: store.name)));
           }),
           const SizedBox(width: 16),
-          // Nút Gọi
-          _buildIconButton(Icons.phone_outlined, () {
-            _showHotlineBottomSheet(context, store.hotline);
-          }),
+          _buildIconButton(Icons.phone_outlined, () => _showHotlineBottomSheet(context, store.hotline)),
           const SizedBox(width: 16),
-
-          // NÚT MAP: CẦN DÙNG BUILDER ĐỂ LẤY CONTEXT BÊN TRONG TABCONTROLLER
           Builder(builder: (innerContext) {
             return _buildIconButton(Icons.location_on_outlined, () {
-              // 1. Chuyển sang Tab số 4 (Location) dùng innerContext
-              DefaultTabController.of(innerContext).animateTo(4);
-
-              // 2. Tự động cuộn xuống để thu gọn SliverAppBar
-              // Dùng _scrollController đã gán ở NestedScrollView
-              _scrollController.animateTo(
-                280.0, // Đúng bằng expandedHeight của SliverAppBar
-                duration: const Duration(milliseconds: 500),
-                curve: Curves.easeInOut,
-              );
+              DefaultTabController.of(innerContext).animateTo(4); // Chuyển Tab Map
+              _scrollController.animateTo(280.0, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
             });
           }),
         ],
@@ -529,104 +550,35 @@ class _StoreDetailsState extends State<StoreDetails> {
     );
   }
 
+  // Hiển thị BottomSheet khi nhấn nút Gọi hotline
   void _showHotlineBottomSheet(BuildContext context, String phoneNumber) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent, // Giữ nền trong suốt để thấy bo góc
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)), // Bo góc sâu hơn cho hiện đại
-        ),
+        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Thanh kéo nhỏ phía trên cùng (Gợi ý UX cho người dùng)
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 24),
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-
-            // Icon điện thoại nổi bật
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.phone_forwarded_rounded,
-                  color: AppColors.primary, size: 32),
-            ),
+            Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+            Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.phone_forwarded_rounded, color: AppColors.primary, size: 32)),
             const SizedBox(height: 16),
-
-            // Tiêu đề "Tap to call"
-            Text(
-              "Tap to call",
-              style: AppTypography.labelLG.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppColors.neutral950,
-              ),
-            ),
+            Text("Tap to call", style: AppTypography.labelLG.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
-
-            // Hiển thị số điện thoại lớn và rõ ràng
-            Text(
-              phoneNumber.isNotEmpty ? phoneNumber : "Not updated",
-              style: AppTypography.headlineSM.copyWith(
-                color: AppColors.primary,
-                letterSpacing: 1.2,
-              ),
-            ),
+            Text(phoneNumber.isNotEmpty ? phoneNumber : "Not updated", style: AppTypography.headlineSM.copyWith(color: AppColors.primary, letterSpacing: 1.2)),
             const SizedBox(height: 32),
-
-            // Nút Gọi chính (Full width)
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // Thực hiện cuộc gọi thật với url_launcher
-                  Navigator.pop(context);
-                  debugPrint("Calling $phoneNumber...");
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  "Call Now",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
+                child: const Text("Call Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ),
             const SizedBox(height: 12),
-
-            // Nút Hủy dạng TextButton ở dưới cùng để tối giản
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              style: TextButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50),
-              ),
-              child: Text(
-                "Cancel",
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+            TextButton(onPressed: () => Navigator.pop(context), style: TextButton.styleFrom(minimumSize: const Size(double.infinity, 50)), child: Text("Cancel", style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w600))),
           ],
         ),
       ),
@@ -634,6 +586,7 @@ class _StoreDetailsState extends State<StoreDetails> {
   }
 }
 
+/// LỚP ĐIỀU KHIỂN CHIỀU CAO TABBAR KHI CUỘN (SLIVER PERSISTENT HEADER)
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   _SliverAppBarDelegate(this._tabBar);
   final TabBar _tabBar;

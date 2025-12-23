@@ -1,4 +1,5 @@
 // lib/UI/your_appointment_screen.dart
+import 'package:applamdep/Theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:applamdep/UI/booking/your_appointment_screen.dart'; // Import trang Booking để chuyển khi nhấn "Book now"
 import 'package:applamdep/UI/booking/booking_screen.dart'; // Import trang Booking
@@ -154,7 +155,7 @@ class _BookNowScreenState extends State<BookNowScreen> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.local_offer_outlined, color: Colors.pink),
+                    Icon(Icons.local_offer_outlined, color: AppColors.primary),
                     SizedBox(width: 8),
                     Text(
                       'Coupons',
@@ -197,7 +198,7 @@ class _BookNowScreenState extends State<BookNowScreen> {
             // ================= HOT RECOMMENDATIONS =================
             Row(
               children: [
-                const Icon(Icons.whatshot, color: Colors.red),
+                const Icon(Icons.whatshot, color: AppColors.error500),
                 const SizedBox(width: 8),
                 const Text(
                   'Hot recommendations',
@@ -302,12 +303,12 @@ class _BookNowScreenState extends State<BookNowScreen> {
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const AppointmentDetailScreen()),
-                  );
-                },
+                // onTap: () {
+                //   Navigator.push(
+                //     // context,
+                //     // MaterialPageRoute(builder: (context) => const AppointmentDetailScreen()),
+                //   );
+                // },
                 child: const Text(
                   'See more',
                   style: TextStyle(color: Color(0xFFF25278)),

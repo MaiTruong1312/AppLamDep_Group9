@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_typography.dart';
-import '../../models/store_model.dart';
-import '../../models/service_model.dart';
+import '../../theme/app_colors.dart'; // Bảng màu hồng chủ đạo của dự án
+import '../../theme/app_typography.dart'; // Hệ thống kiểu chữ chuẩn
+import '../../models/store_model.dart'; // Model chứa thông tin tiệm
+import '../../models/service_model.dart'; // Model chứa thông tin dịch vụ
 
+/// ===========================================================================
+/// CLASS CHATSCREEN: MÀN HÌNH NHẮN TIN TRỰC TUYẾN GIỮA KHÁCH VÀ TIỆM
+/// ===========================================================================
+/// Chức năng này đáp ứng yêu cầu trong Chương 2.2.4 của mục lục báo cáo.
+/// Hệ thống sử dụng Cloud Firestore để lưu trữ và cập nhật tin nhắn Real-time.
 class ChatScreen extends StatefulWidget {
-  final String storeId;
-  final String storeName;
-  final List<Service>? sampleServices;
+  final String storeId; // ID tiệm để định danh cuộc hội thoại
+  final String storeName; // Tên tiệm hiển thị trên thanh AppBar
+  final List<Service>? sampleServices; // Danh sách dịch vụ mẫu để gợi ý cho khách
 
   const ChatScreen({
     super.key,
@@ -26,18 +31,27 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final User? _user = FirebaseAuth.instance.currentUser;
-  bool _isWriting = false;
+  bool _isWriting = false; // Theo dõi trạng thái người dùng đang nhập văn bản
 
+  // TẠO CHAT ID DUY NHẤT: Kết hợp giữa UID người dùng và ID tiệm
   String get _chatId => "${_user?.uid}_${widget.storeId}";
-  CollectionReference get _messageRef => FirebaseFirestore.instance.collection('chats').doc(_chatId).collection('messages');
+
+  // THAM CHIẾU ĐẾN COLLECTION TIN NHẮN TRÊN FIRESTORE
+  CollectionReference get _messageRef => FirebaseFirestore.instance
+      .collection('chats')
+      .doc(_chatId)
+      .collection('messages');
 
   @override
   void initState() {
     super.initState();
-    _ensureInitialGreeting();
+    _ensureInitialGreeting(); // Gửi lời chào tự động khi bắt đầu cuộc chat
   }
 
-  // --- LOGIC PHẢN HỒI TIẾNG ANH ---
+  /// -------------------------------------------------------------------------
+  /// LOGIC 1: LỜI CHÀO TỰ ĐỘNG (BOT GREETING)
+  /// -------------------------------------------------------------------------
+  /// Kiểm tra nếu cuộc hội thoại mới tinh, Bot sẽ tự động gửi lời chào ban đầu.
   Future<void> _ensureInitialGreeting() async {
     final snapshot = await _messageRef.limit(1).get();
     if (snapshot.docs.isEmpty) {
@@ -48,33 +62,43 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  /// -------------------------------------------------------------------------
+  /// LOGIC 2: LƯU TIN NHẮN VÀO FIRESTORE
+  /// -------------------------------------------------------------------------
+  /// Lưu trữ nội dung, thời gian và vai trò (người dùng hay tiệm) vào cơ sở dữ liệu.
   Future<void> _saveMessage({required String text, required bool isUser, List<Service>? suggestions}) async {
     await _messageRef.add({
       'text': text,
       'isUser': isUser,
-      'timestamp': FieldValue.serverTimestamp(),
+      'timestamp': FieldValue.serverTimestamp(), // Sử dụng thời gian của Server để chính xác tuyệt đối
       'suggestions': suggestions?.map((s) => {
         'name': s.name,
         'imageUrl': s.imageUrl,
       }).toList(),
     });
-    _scrollToBottom();
+    _scrollToBottom(); // Tự động cuộn xuống tin nhắn mới nhất
   }
 
+  /// -------------------------------------------------------------------------
+  /// LOGIC 3: XỬ LÝ GỬI TIN NHẮN VÀ PHẢN HỒI THÔNG MINH
+  /// -------------------------------------------------------------------------
   void _handleSend(String text) async {
     if (text.trim().isEmpty) return;
     _messageController.clear();
     setState(() => _isWriting = false);
 
+    // 1. Lưu tin nhắn của người dùng
     await _saveMessage(text: text, isUser: true);
 
+    // 2. Giả lập phản hồi từ phía Tiệm (hoặc AI Assistance) sau 1 giây
     Future.delayed(const Duration(seconds: 1), () async {
       String replyText = "Thank you for contacting us! We will get back to you as soon as possible.";
       List<Service>? suggestions;
 
+      // Logic phản hồi dựa trên từ khóa người dùng gửi
       if (text == "Book Now") {
         replyText = "Great choice! Here are our featured services at ${widget.storeName}:";
-        suggestions = widget.sampleServices; // Gán dịch vụ từ widget truyền vào
+        suggestions = widget.sampleServices;
       } else if (text == "Consultant") {
         replyText = "What would you like to be consulted about? Our experts are ready to assist you.";
       }
@@ -83,6 +107,7 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  // Tự động cuộn danh sách xuống cuối cùng
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 300), () {
       if (_scrollController.hasClients) {
@@ -105,6 +130,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
+          // VÙNG HIỂN THỊ TIN NHẮN (REAL-TIME STREAM)
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: _messageRef.orderBy('timestamp', descending: false).snapshots(),
@@ -112,10 +138,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                 final messages = snapshot.data!.docs;
 
-                // SỬ DỤNG CustomScrollView ĐỂ TIN NHẮN NHANH LUÔN Ở CUỐI VÙNG CUỘN
                 return CustomScrollView(
                   controller: _scrollController,
                   slivers: [
+                    // Hiển thị danh sách bóng bong tin nhắn
                     SliverPadding(
                       padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
                       sliver: SliverList(
@@ -125,7 +151,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
                     ),
-                    // TIN NHẮN NHANH Ở CUỐI, NỔI BẬT HƠN
+                    // PHẦN CÂU HỎI NHANH (QUICK ACTIONS) LUÔN NẰM Ở CUỐI VÙNG CUỘN
                     SliverFillRemaining(
                       hasScrollBody: false,
                       child: _buildHighlightedQuickActions(),
@@ -135,14 +161,16 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
+          // THANH NHẬP TIN NHẮN (INPUT BAR)
           _buildPillInputBar(),
         ],
       ),
     );
   }
 
-  // --- UI COMPONENTS ---
-
+  /// -------------------------------------------------------------------------
+  /// WIDGET: _BUILDMESSAGEBUBBLE - THIẾT KẾ BÓNG BONG TIN NHẮN
+  /// -------------------------------------------------------------------------
   Widget _buildMessageBubble(Map<String, dynamic> data) {
     bool isUser = data['isUser'] ?? false;
     var suggestions = data['suggestions'] as List<dynamic>?;
@@ -156,30 +184,42 @@ class _ChatScreenState extends State<ChatScreen> {
             mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (!isUser) _buildBotAvatar(),
+              if (!isUser) _buildBotAvatar(), // Hiển thị Avatar nếu là tin nhắn từ tiệm
               const SizedBox(width: 8),
               Flexible(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: isUser ? AppColors.primary : AppColors.white,
+                    color: isUser ? AppColors.primary : AppColors.white, // Màu hồng cho User, Trắng cho Bot
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
                   ),
-                  child: Text(data['text'] ?? '', style: AppTypography.textSM.copyWith(color: isUser ? AppColors.white : AppColors.neutral950, fontWeight: FontWeight.w500)),
+                  child: Text(
+                      data['text'] ?? '',
+                      style: AppTypography.textSM.copyWith(
+                          color: isUser ? AppColors.white : AppColors.neutral950,
+                          fontWeight: FontWeight.w500
+                      )
+                  ),
                 ),
               ),
             ],
           ),
-          // SỬA LỖI: Truyền danh sách suggestions vào widget hiển thị
+          // Hiển thị danh sách thẻ dịch vụ gợi ý nếu có (Service Suggestions)
           if (suggestions != null && suggestions.isNotEmpty) _buildServiceList(suggestions),
         ],
       ),
     );
   }
 
-  Widget _buildBotAvatar() => CircleAvatar(radius: 16, backgroundColor: AppColors.primary, child: const Icon(Icons.auto_awesome, color: Colors.white, size: 14));
+  // Widget hiển thị Avatar biểu tượng AI/Bot
+  Widget _buildBotAvatar() => CircleAvatar(
+      radius: 16,
+      backgroundColor: AppColors.primary,
+      child: const Icon(Icons.auto_awesome, color: Colors.white, size: 14)
+  );
 
+  /// Widget hiển thị danh sách các dịch vụ gợi ý trượt ngang trong Chat
   Widget _buildServiceList(List<dynamic> suggestions) {
     return Container(
       height: 100,
@@ -193,13 +233,13 @@ class _ChatScreenState extends State<ChatScreen> {
             width: 180,
             margin: const EdgeInsets.only(right: 12),
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8)]),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)]),
             child: Row(
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
-                    s['imageUrl'] ?? '', // Đồng nhất key imageUrl
+                    s['imageUrl'] ?? '',
                     width: 45, height: 45, fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => const Icon(Icons.spa, color: AppColors.primary),
                   ),
@@ -214,7 +254,10 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // QUICK ACTIONS NỔI BẬT Ở CUỐI
+  /// -------------------------------------------------------------------------
+  /// WIDGET: _BUILDHIGHLIGHTEDQUICKACTIONS - CÁC NÚT HỎI NHANH
+  /// -------------------------------------------------------------------------
+  /// Giúp người dùng tương tác nhanh mà không cần nhập liệu nhiều.
   Widget _buildHighlightedQuickActions() {
     final actions = ["Book Now", "Consultant", "Learn more"];
     return Column(
@@ -238,8 +281,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(25),
-                    boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.1), blurRadius: 15, offset: const Offset(0, 5))],
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+                    boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 5))],
+                    border: Border.all(color: AppColors.primary.withOpacity(0.1)),
                   ),
                   child: Text(actions[index], style: AppTypography.textSM.copyWith(fontWeight: FontWeight.bold)),
                 ),
@@ -252,6 +295,9 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  /// -------------------------------------------------------------------------
+  /// WIDGET: _BUILDPILLINPUTBAR - THANH NHẬP LIỆU DẠNG VIÊN THUỐC (PILL)
+  /// -------------------------------------------------------------------------
   Widget _buildPillInputBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 34),
@@ -261,7 +307,12 @@ class _ChatScreenState extends State<ChatScreen> {
         decoration: BoxDecoration(color: const Color(0xFFF1F3F5), borderRadius: BorderRadius.circular(35)),
         child: Row(
           children: [
-            Container(padding: const EdgeInsets.all(10), decoration: const BoxDecoration(color: Color(0xFFF25278), shape: BoxShape.circle), child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 20)),
+            // Nút Camera nhanh
+            Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(color: Color(0xFFF25278), shape: BoxShape.circle),
+                child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 20)
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: TextField(
@@ -271,7 +322,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 decoration: const InputDecoration(border: InputBorder.none, hintText: "Chat...", isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 8)),
               ),
             ),
-            if (_isWriting) IconButton(icon: const Icon(Icons.send, color: AppColors.primary), onPressed: () => _handleSend(_messageController.text))
+            // Hiển thị nút Gửi nếu đang nhập, ngược lại hiển thị các icon chức năng khác
+            if (_isWriting)
+              IconButton(icon: const Icon(Icons.send, color: AppColors.primary), onPressed: () => _handleSend(_messageController.text))
             else ...[
               _buildInputIcon(Icons.mic_none_outlined, AppColors.neutral950),
               _buildInputIcon(Icons.image_outlined, AppColors.neutral950),
@@ -285,16 +338,11 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildInputIcon(IconData icon, Color color, {bool isCircular = false}) {
+  // Hàm tạo Icon cho thanh Input Bar
+  Widget _buildInputIcon(IconData icon, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: isCircular
-          ? Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-        child: Icon(icon, color: color, size: 20),
-      )
-          : Icon(icon, color: color, size: 24),
+      child: Icon(icon, color: color, size: 24),
     );
   }
 }
