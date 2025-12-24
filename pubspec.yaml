@@ -59,6 +59,7 @@ dev_dependencies:
 
   flutter_test:
     sdk: flutter
+  mocktail: ^1.0.4
   integration_test:
     sdk: flutter
   flutter_lints: ^5.0.0
@@ -67,6 +68,8 @@ dev_dependencies:
   geolocator: ^10.1.0  # Cho location trong StoreService
   cached_network_image: ^3.3.1  # Cho load image trong UI
   google_maps_flutter: ^2.5.0
+  firebase_core_platform_interface: ^5.4.2
+  mockito: ^5.6.1
 
 
 flutter:
