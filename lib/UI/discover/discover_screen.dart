@@ -8,7 +8,7 @@ import 'package:applamdep/UI/Main/home.dart';
 import 'package:applamdep/UI/detail/nail_detail_screen.dart';
 import 'package:applamdep/UI/profile/Notification_screen.dart';
 import 'package:applamdep/UI/ar/home.dart'; // AR Nail Try-on
-import 'package:applamdep/UI/chatbot/home.dart'; // AI Nail Assistant (sửa bug)
+import 'package:applamdep/UI/chatbot/home.dart'; // AI Nail Assistant
 import 'package:applamdep/widgets/nail_card.dart';
 
 class DiscoverScreen extends StatefulWidget {
