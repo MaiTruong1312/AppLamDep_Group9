@@ -151,14 +151,12 @@ class _ArNailTryOnPageState extends State<ArNailTryOnPage>
 
   Future<void> _processCameraImage(CameraImage image) async {
     if (_isDetecting || !_isInitialized || _handPlugin == null) return;
-
     _isDetecting = true;
     try {
       final hands = _handPlugin!.detect(
         image,
         _cameraController!.description.sensorOrientation,
       );
-
       if (mounted) {
         setState(() {
           _hands = hands;
@@ -1424,7 +1422,6 @@ class HandArPainter extends CustomPainter {
       final adjustedTipPos = tipPos + nailOffset;
       canvas.translate(adjustedTipPos.dx, adjustedTipPos.dy);
       canvas.rotate(totalRotation);
-
       canvas.drawOval(
         Rect.fromCenter(
           center: Offset.zero,
@@ -1433,7 +1430,6 @@ class HandArPainter extends CustomPainter {
         ),
         placeholderPaint,
       );
-
       canvas.restore();
     }
   }

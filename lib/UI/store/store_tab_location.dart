@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 // Package chính thức của Google để nhúng bản đồ tương tác vào Flutter
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 // Package để mở URL bên ngoài (ở đây dùng để mở Google Maps app hoặc trình duyệt)
-import 'package:url_launcher/url_launcher.dart'; // Cần thêm vào pubspec.yaml: url_launcher: ^6.3.0
+import 'package:url_launcher/url_launcher.dart';
+// Cần thêm vào pubspec.yaml: url_launcher: ^6.3.0
 
 import '../../models/store_model.dart'; // Model chứa thông tin tiệm (bao gồm location GeoPoint và distance)
 import '../../theme/app_colors.dart';     // File theme định nghĩa màu sắc ứng dụng (primary là hồng chủ đạo)

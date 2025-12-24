@@ -310,7 +310,7 @@ class _ChatScreenState extends State<ChatScreen> {
             // Nút Camera nhanh
             Container(
                 padding: const EdgeInsets.all(10),
-                decoration: const BoxDecoration(color: Color(0xFFF25278), shape: BoxShape.circle),
+                decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
                 child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 20)
             ),
             const SizedBox(width: 10),

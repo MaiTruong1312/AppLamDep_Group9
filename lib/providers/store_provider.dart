@@ -6,8 +6,15 @@ import '../models/service_model.dart';
 import '../services/store_service.dart';
 
 class StoreProvider with ChangeNotifier {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final StoreService _storeService = StoreService();
+  final FirebaseFirestore _firestore;
+  final StoreService _storeService;
+
+  // Constructor inject cả 2 dependency
+  StoreProvider({
+    FirebaseFirestore? firestore,
+    StoreService? storeService,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _storeService = storeService ?? StoreService();
 
   List<Store> _stores = [];
   Store? _currentStore;
