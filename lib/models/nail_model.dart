@@ -11,6 +11,7 @@ class Nail {
   final String storeId;
   final List<String> tags;
   final bool isBestChoice;
+  final List<String> storeIds;
 
   Nail({
     required this.id,
@@ -22,6 +23,7 @@ class Nail {
     required this.storeId,
     required this.tags,
     this.isBestChoice = false,
+    this.storeIds = const [],
   });
 
   factory Nail.fromFirestore(DocumentSnapshot doc) {
@@ -36,6 +38,7 @@ class Nail {
       storeId: data['store_id'] ?? '',
       tags: List<String>.from(data['tags'] ?? []),
       isBestChoice: (List<String>.from(data['tags'] ?? [])).contains('Best Choice'),
+      storeIds: List<String>.from(data['store_Ids'] ?? []),
     );
   }
 }

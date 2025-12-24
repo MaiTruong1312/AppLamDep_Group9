@@ -1206,7 +1206,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                       Expanded(
                                         child: Text(
                                           store.name, // Rút gọn lại chỉ hiện tên tiệm
-                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.black),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -1235,7 +1235,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                       const SizedBox(width: 4),
                                       Text(
                                         '${store.rating} (${store.reviewsCount})',
-                                        style: const TextStyle(fontSize: 13, color: Colors.grey),
+                                        style: const TextStyle(fontSize: 13, color: AppColors.neutral900),
                                       ),
                                     ],
                                   ),
@@ -1243,7 +1243,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   // Giữ địa chỉ ở dưới cùng
                                   Text(
                                     store.address,
-                                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                    style: const TextStyle(color: AppColors.neutral800, fontSize: 13),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),

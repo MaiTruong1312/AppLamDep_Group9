@@ -62,7 +62,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
         final prices = nails.map((n) => n.price).toList();
         final min = prices.reduce((a, b) => a < b ? a : b);
         final max = prices.reduce((a, b) => a > b ? a : b);
-        priceRange = "$min - $max"; // Hiển thị khoảng giá động
+        priceRange = "\$$min - \$$max"; // Hiển thị khoảng giá động
       }
     });
   }
@@ -113,9 +113,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                   _buildMainInfo(), // Thông tin tên, giá, mô tả dịch vụ
                   const SizedBox(height: 24),
                   _buildAIBannerSection(), // Banner quảng bá công nghệ AI Try-on [cite: 26]
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
                   _buildSectionTitle("Gallery Designs"), // Tiêu đề mục các mẫu móng gợi ý
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 0),
                   _buildNailGallery(), // Grid hiển thị các mẫu móng thực tế
                 ],
               ),

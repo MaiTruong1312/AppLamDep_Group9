@@ -1,63 +1,40 @@
 import 'package:flutter/material.dart';
-import '../../models/store_model.dart'; // Model chứa dữ liệu cửa hàng
-import '../../models/service_model.dart'; // Model chứa dữ liệu chi tiết dịch vụ
-import '../../theme/app_colors.dart'; // Quản lý bảng màu (Theme) của ứng dụng
-import '../../theme/app_typography.dart'; // Quản lý các kiểu chữ (Font, Size, Weight)
-import 'service_details.dart'; // Màn hình chi tiết dịch vụ để điều hướng
+import '../../models/store_model.dart';
+import '../../models/service_model.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_typography.dart';
+import 'service_details.dart';
 
-/// Hàm phụ trợ xử lý hiển thị hình ảnh thông minh
-/// Giúp ứng dụng tự động nhận diện ảnh từ bộ nhớ local (assets) hoặc từ internet (network)
-Widget _buildSmartImage(String path) {
-  // 1. Trường hợp đường dẫn rỗng: Hiển thị một Container xám kèm icon lỗi để tránh app bị trống
-  if (path.isEmpty) {
-    return Container(
-        color: Colors.grey[200],
-        child: const Icon(Icons.image_not_supported)
-    );
-  }
-
-  // 2. Trường hợp ảnh local: Nhận diện qua tiền tố 'assets/'
-  if (path.startsWith('assets/')) {
-    return Image.asset(path, fit: BoxFit.cover); // fit: BoxFit.cover giúp ảnh lấp đầy khung mà không bị méo
-  }
-
-  // 3. Trường hợp ảnh từ URL (Firebase/Cloudinary): Sử dụng Image.network
-  return Image.network(
-    path,
-    fit: BoxFit.cover,
-    // errorBuilder: Xử lý khi đường dẫn URL bị hỏng hoặc mất kết nối mạng
-    errorBuilder: (context, error, stackTrace) => Container(
-        color: Colors.grey[200],
-        child: const Icon(Icons.broken_image)
-    ),
-  );
-}
-
-/// Class MostServiceTab: Hiển thị danh sách các dịch vụ nổi bật của tiệm
-/// Đây là một Stateless Widget vì dữ liệu dịch vụ được cung cấp từ Store và không thay đổi trạng thái tại đây
-class MostServiceTab extends StatelessWidget {
-  final Store store; // Nhận đối tượng Store để truy xuất danh sách dịch vụ (store.services)
+class MostServiceTab extends StatefulWidget {
+  final Store store;
   const MostServiceTab({super.key, required this.store});
 
-  /// Hàm điều hướng sang màn hình chi tiết dịch vụ
-  /// [showMessage]: Nếu là true sẽ hiển thị SnackBar nhắc nhở người dùng
+  @override
+  State<MostServiceTab> createState() => _MostServiceTabState();
+}
+
+class _MostServiceTabState extends State<MostServiceTab> {
+  // --- STATE MANAGEMENT ---
+  bool _isSearching = false; // Trạng thái co giãn của thanh tìm kiếm
+  String _searchQuery = ""; // Nội dung tìm kiếm hiện tại
+  final TextEditingController _searchController = TextEditingController();
+
+  /// Hàm điều hướng và thông báo (Giữ nguyên logic của bạn)
   void _navigateToDetail(BuildContext context, Service service, {bool showMessage = false}) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        // Truyền cả đối tượng service và store để trang chi tiết có đầy đủ ngữ cảnh dữ liệu
-        builder: (context) => ServiceDetailsScreen(service: service, store: store),
+        builder: (context) => ServiceDetailsScreen(service: service, store: widget.store),
       ),
     );
 
-    // Logic hiển thị thông báo hướng dẫn (SnackBar) khi người dùng nhấn nút "Book"
     if (showMessage) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Please select a design to book an appointment"),
-          backgroundColor: AppColors.primary, // Sử dụng màu hồng chủ đạo của thương hiệu [cite: 40]
+          backgroundColor: AppColors.primary,
           duration: Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating, // Hiển thị dạng nổi trên màn hình cho hiện đại
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -65,59 +42,100 @@ class MostServiceTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // LOGIC TÌM KIẾM: Lọc danh sách dịch vụ theo tên
+    final filteredServices = widget.store.services
+        .where((s) => s.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
+
     return Column(
       children: [
-        // PHẦN 1: THANH TÌM KIẾM (Search Bar)
-        // Được bọc trong Padding để tạo khoảng cách với các cạnh màn hình
+        // --- PHẦN 1: THANH TÌM KIẾM CO GIÃN (EXPANDABLE SEARCH) ---
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.grey.shade100),
-            ),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: "Search services...",
-                hintStyle: AppTypography.textSM.copyWith(color: Colors.grey.shade400),
-                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-              ),
-            ),
-          ),
+          child: LayoutBuilder(builder: (context, constraints) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ClipRect(  // Clip để cắt overflow nếu còn
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    width: _isSearching ? constraints.maxWidth : 48,  // Tăng width khi collapse để icon vừa
+                    height: 48,  // Tăng height từ 44 → 48 để chừa space padding/border
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9FAFB),
+                      borderRadius: BorderRadius.circular(_isSearching ? 12 : 24),  // Làm tròn hơn khi collapse
+                      border: Border.all(color: Colors.grey.shade100),
+                    ),
+                    child: SingleChildScrollView(  // Thêm scroll horizontal nếu text dài overflow
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          IconButton(
+                            padding: const EdgeInsets.all(12),  // Padding đều để icon giữa
+                            icon: Icon(_isSearching ? Icons.close : Icons.search_rounded,
+                                color: AppColors.primary, size: 20),
+                            onPressed: () {
+                              setState(() {
+                                _isSearching = !_isSearching;
+                                if (!_isSearching) {
+                                  _searchController.clear();
+                                  _searchQuery = "";
+                                }
+                              });
+                            },
+                          ),
+                          if (_isSearching)
+                            SizedBox(
+                              width: constraints.maxWidth - 60,  // Giới hạn width TextField để tránh overflow
+                              child: TextField(
+                                controller: _searchController,
+                                autofocus: true,
+                                style: AppTypography.textSM,
+                                decoration: const InputDecoration(
+                                  hintText: "Search services...",
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 4),  // Giảm padding horizontal
+                                ),
+                                onChanged: (val) => setState(() => _searchQuery = val),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }),
         ),
 
-        // PHẦN 2: DANH SÁCH DỊCH VỤ (ListView)
-        // Expanded giúp danh sách chiếm toàn bộ không gian còn lại và có thể cuộn được
+        // --- DANH SÁCH DỊCH VỤ ---
         Expanded(
-          child: ListView.builder(
+          child: filteredServices.isEmpty
+              ? const Center(child: Text("No services found."))
+              : ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: store.services.length,
-            itemBuilder: (context, index) {
-              final service = store.services[index];
-              return _buildCompactServiceCard(context, service);
-            },
+            itemCount: filteredServices.length,
+            itemBuilder: (context, index) => _buildCompactServiceCard(context, filteredServices[index]),
           ),
         ),
       ],
     );
   }
 
-  /// Hàm xây dựng giao diện cho từng thẻ dịch vụ (Service Card)
   Widget _buildCompactServiceCard(BuildContext context, Service service) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        // VIỀN HỒNG SIÊU MẢNH GIÚP THẺ NỔI BẬT KHÔNG CẦN ĐỔ BÓNG DÀY
-        border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 1),
+        // FIX CẢNH BÁO DEPRECATED: Dùng .withValues
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 12,
             offset: const Offset(0, 4),
           )
@@ -125,12 +143,10 @@ class MostServiceTab extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () => _navigateToDetail(context, service),
-        borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // 1. ẢNH DỊCH VỤ (Kích thước nhỏ gọn 85x85)
               ClipRRect(
                 borderRadius: BorderRadius.circular(14),
                 child: SizedBox(
@@ -140,8 +156,6 @@ class MostServiceTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-
-              // 2. THÔNG TIN (Sử dụng Expanded để tự động co giãn)
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,57 +164,19 @@ class MostServiceTab extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: Text(
-                            service.name,
-                            style: AppTypography.textSM.copyWith(fontWeight: FontWeight.w900),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          child: Text(service.name, style: AppTypography.textSM.copyWith(fontWeight: FontWeight.w900), maxLines: 1, overflow: TextOverflow.ellipsis),
                         ),
-                        // GIÁ TIỀN (Nằm cùng dòng với tên giúp gọn hơn)
-                        Text(
-                          "\$${service.price}",
-                          style: AppTypography.textSM.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        Text("\$${service.price}", style: AppTypography.textSM.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
                       ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      service.description,
-                      style: AppTypography.textXS.copyWith(color: Colors.grey[500], height: 1.3),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 10),
                     Row(
                       children: [
                         const Icon(Icons.access_time_rounded, size: 14, color: Colors.grey),
                         const SizedBox(width: 4),
-                        Text(
-                          "${service.duration} mins",
-                          style: AppTypography.textXS.copyWith(color: Colors.grey[600]),
-                        ),
+                        Text("${service.duration} mins", style: AppTypography.textXS.copyWith(color: Colors.grey[600])),
                         const Spacer(),
-                        // NÚT BOOK (Thiết kế lại tối giản)
-                        SizedBox(
-                          height: 32,
-                          child: ElevatedButton(
-                            onPressed: () => _navigateToDetail(context, service, showMessage: true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                            ),
-                            child: const Text(
-                              "Book",
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                          ),
-                        ),
+                        _buildBookButton(context, service),
                       ],
                     ),
                   ],
@@ -211,5 +187,27 @@ class MostServiceTab extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildBookButton(BuildContext context, Service service) {
+    return SizedBox(
+      height: 30,
+      child: ElevatedButton(
+        onPressed: () => _navigateToDetail(context, service, showMessage: true),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+        ),
+        child: const Text("Book", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+      ),
+    );
+  }
+
+  Widget _buildSmartImage(String path) {
+    if (path.isEmpty) return Container(color: Colors.grey[200], child: const Icon(Icons.broken_image));
+    if (path.startsWith('assets/')) return Image.asset(path, fit: BoxFit.cover);
+    return Image.network(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: Colors.grey[200], child: const Icon(Icons.broken_image)));
   }
 }
