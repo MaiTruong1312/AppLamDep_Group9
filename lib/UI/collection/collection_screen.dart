@@ -226,10 +226,6 @@ class _CollectionScreenState extends State<CollectionScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios, size: 22),
-            onPressed: () => Navigator.pop(context),
-          ),
           const Expanded(
             child: Text(
               "Collection",
@@ -346,7 +342,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
             onPressed: () => setState(() {
               _storesFuture = _loadStores();
             }),
-            child: const Text('Loading'),
+            child: const Text('Loading  '),
           ),
         ],
       ),

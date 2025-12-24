@@ -443,7 +443,7 @@ class _ConfirmAppointmentScreenState extends State<ConfirmAppointmentScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Discount${_appointment.couponCode != null ? ' (${_appointment.couponCode})' : ''}', style: const TextStyle(fontSize: 15)),
-                Text('-\${_currencyFormat.format(_appointment.discountAmount)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.green)),
+                Text('\${_currencyFormat.format(_appointment.discountAmount)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.green)),
               ],
             ),
           ],

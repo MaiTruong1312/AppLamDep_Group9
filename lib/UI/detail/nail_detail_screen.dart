@@ -1299,7 +1299,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10),
       height: 45,
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: Color(0xFFF25278),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -1372,7 +1372,7 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
           borderRadius: BorderRadius.circular(10),
         ),
         action: SnackBarAction(
-          label: 'Gọi',
+          label: 'Call',
           textColor: Colors.white,
           onPressed: () {
             // launch('tel:${widget.store!.phone}');
@@ -1502,14 +1502,13 @@ class _NailDetailScreenState extends State<NailDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Đánh giá',
+            'Rev',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
-          // TODO: Thêm danh sách đánh giá
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(

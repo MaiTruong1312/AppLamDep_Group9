@@ -201,7 +201,7 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      // Bỏ SafeArea bao ngoài body
+      resizeToAvoidBottomInset: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -1357,7 +1357,7 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
       };
     }
 
-    final response = await ChatbotService.sendMessage(query);
+    final response = await ChatbotService.send(query);
     return {"text": response, "type": "text"};
   }
 
@@ -1383,7 +1383,7 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
     setState(() => _isLoading = true);
 
     await Future.delayed(Duration(milliseconds: 800));
-    final aiResponse = await ChatbotService.sendMessage(msg);
+    final aiResponse = await ChatbotService.send(msg);
 
     _addAIMessage(aiResponse);
     setState(() => _isLoading = false);
@@ -2623,14 +2623,9 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
 
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
-      // Yêu cầu đăng nhập
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Vui lòng đăng nhập để lưu chat'),
-          backgroundColor: Colors.orange,
-        ),
+        SnackBar(content: Text('Vui lòng đăng nhập để lưu chat'), backgroundColor: Colors.orange),
       );
-
       _addUserMessage(_controller.text);
       _controller.clear();
       return;
@@ -2638,45 +2633,35 @@ class _ChatBotPageV2State extends State<ChatBotPageV2>
 
     final msg = _controller.text;
     _controller.clear();
+    _addUserMessage(msg);
+    setState(() => _isLoading = true);
 
-    // Tạo chat mới nếu chưa có
-    if (_currentChatId == null) {
-      try {
+    try {
+      if (_currentChatId == null) {
         _currentChatId = await FirebaseChatHistoryService.createNewChat(
           userId: userId,
           title: msg.length > 30 ? '${msg.substring(0, 30)}...' : msg,
         );
-      } catch (e) {
-        print('Error creating new chat: $e');
-        return;
       }
-    }
 
-    // Add user message
-    _addUserMessage(msg);
-    setState(() => _isLoading = true);
-    if (_currentChatId != null) {
-      FirebaseChatHistoryService.saveMessage(
-        chatId: _currentChatId!,
-        text: msg,
-        role: 'user',
-      );
-    }
-    await _saveMessageToFirebase(msg, 'user');
+      // 3. Lưu tin nhắn User vào Firebase (CHỈ GỌI 1 LẦN)
+      await _saveMessageToFirebase(msg, 'user');
 
-    // Get AI response
-    final aiResponse = await _analyzeAndRespond(msg);
+      // 4. Gọi AI xử lý
+      //
+      final aiResponse = await _analyzeAndRespond(msg);
 
-    _addAIMessage(aiResponse['text'], type: aiResponse['type']);
-    setState(() => _isLoading = false);
-    if (_currentChatId != null) {
-      FirebaseChatHistoryService.saveMessage(
-        chatId: _currentChatId!,
-        text: aiResponse['text'],
-        role: 'ai',
-        type: aiResponse['type'] ?? 'text',
-      );
+      // 5. Hiển thị AI response lên UI
+      _addAIMessage(aiResponse['text'], type: aiResponse['type']);
+
+      // 6. Lưu tin nhắn AI vào Firebase (CHỈ GỌI 1 LẦN)
+      await _saveMessageToFirebase(aiResponse['text'], 'ai', aiResponse['type']);
+
+    } catch (e) {
+      print("Lỗi trong quá trình chat: $e");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Có lỗi xảy ra!")));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-    await _saveMessageToFirebase(aiResponse['text'], 'ai', aiResponse['type']);
   }
 }
