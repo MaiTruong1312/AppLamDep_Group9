@@ -36,7 +36,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   void initState() {
     super.initState();
     _checkFavoriteStatus(); // Kiểm tra trạng thái yêu thích từ Firestore
-    _fetchNailsAndPrices(); // Truy vấn các mẫu móng liên quan để tính giá
+    _fetchNailsByService(); // Truy vấn các mẫu móng liên quan để tính giá
   }
 
   /// -------------------------------------------------------------------------
@@ -44,26 +44,27 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   /// -------------------------------------------------------------------------
   /// Hệ thống sẽ tìm trong collection 'nails' các mẫu móng có tag trùng với
   /// tên dịch vụ hiện tại để tính toán khoảng giá thấp nhất và cao nhất.
-  Future<void> _fetchNailsAndPrices() async {
+  Future<void> _fetchNailsByService() async {
+    // Truy vấn Firestore tìm các mẫu nail có tag trùng với tên dịch vụ
     final snapshot = await FirebaseFirestore.instance
         .collection('nails')
-        .where('tags', arrayContains: widget.service.name) // Lọc mẫu móng theo tag [cite: 88]
+        .where('tags', arrayContains: widget.service.name) // Lọc theo tên dịch vụ
         .get();
 
+    // Chuyển đổi dữ liệu từ QuerySnapshot sang List<Nail>
     final nails = snapshot.docs.map((doc) => Nail.fromFirestore(doc)).toList();
 
-    if (nails.isNotEmpty) {
-      final prices = nails.map((n) => n.price).toList();
-      final min = prices.reduce((a, b) => a < b ? a : b); // Tìm giá thấp nhất
-      final max = prices.reduce((a, b) => a > b ? a : b); // Tìm giá cao nhất
-      setState(() {
-        relatedNails = nails;
-        priceRange = "\$${min.toStringAsFixed(2)} - \$${max.toStringAsFixed(2)}";
-      });
-    } else {
-      // Nếu không có mẫu móng nào, hiển thị giá cơ bản của dịch vụ
-      setState(() { priceRange = "\$${widget.service.price.toStringAsFixed(2)}"; });
-    }
+    setState(() {
+      relatedNails = nails; // Cập nhật danh sách để hiển thị lên UI
+
+      // TÍNH TOÁN KHOẢNG GIÁ DỰA TRÊN CÁC MẪU TÌM ĐƯỢC
+      if (nails.isNotEmpty) {
+        final prices = nails.map((n) => n.price).toList();
+        final min = prices.reduce((a, b) => a < b ? a : b);
+        final max = prices.reduce((a, b) => a > b ? a : b);
+        priceRange = "$min - $max"; // Hiển thị khoảng giá động
+      }
+    });
   }
 
   /// -------------------------------------------------------------------------
@@ -268,18 +269,35 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   /// GRID HIỂN THỊ CÁC MẪU MÓNG LIÊN QUAN (NAIL GALLERY)
   /// -------------------------------------------------------------------------
   Widget _buildNailGallery() {
+    if (relatedNails.isEmpty) {
+      return const Center(child: Text("No designs available for this service yet."));
+    }
+
     return GridView.builder(
       shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(), //
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2, mainAxisSpacing: 16, crossAxisSpacing: 16, childAspectRatio: 0.72
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 0.72, // Điều chỉnh tỉ lệ để thẻ cân xứng hơn
       ),
       itemCount: relatedNails.length,
       itemBuilder: (context, index) {
         final nail = relatedNails[index];
+        // --- THÊM TRÌNH ĐIỀU HƯỚNG TẠI ĐÂY ---
         return InkWell(
-          // Chuyển sang chi tiết mẫu móng khi nhấn vào Card
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => NailDetailScreen(nail: nail, store: widget.store))),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => NailDetailScreen(
+                  nail: nail,
+                  store: widget.store, // Truyền thông tin tiệm để chat/đặt lịch
+                ),
+              ),
+            );
+          },
           child: _buildNailCard(nail),
         );
       },
@@ -290,8 +308,14 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
     return Container(
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 10))]
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            )
+          ]
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,26 +323,69 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
           Expanded(
               child: Stack(
                   children: [
-                    ClipRRect(borderRadius: const BorderRadius.vertical(top: Radius.circular(28)), child: _buildSmartImage(nail.imgUrl)),
-                    Positioned(top: 12, right: 12, child: CircleAvatar(radius: 14, backgroundColor: Colors.white.withOpacity(0.8), child: const Icon(Icons.favorite_border, size: 16, color: Colors.grey))),
-                    Positioned(bottom: 12, right: 12, child: CircleAvatar(radius: 14, backgroundColor: AppColors.primary, child: const Icon(Icons.add, size: 18, color: Colors.white))),
+                    // HIỆU ỨNG HERO: Tag phải trùng với trang chi tiết (nail.id)
+                    Hero(
+                      tag: nail.id,
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: double.infinity,
+                          child: _buildSmartImage(nail.imgUrl), //
+                        ),
+                      ),
+                    ),
+                    // Nút Favorite nhỏ trên ảnh
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: CircleAvatar(
+                        radius: 14,
+                        backgroundColor: Colors.white.withOpacity(0.8),
+                        child: const Icon(Icons.favorite_border, size: 16, color: Colors.grey),
+                      ),
+                    ),
                   ]
               )
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(nail.name, style: AppTypography.textXS.copyWith(fontWeight: FontWeight.w800), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text("Nail Haven Studio", style: AppTypography.textXS.copyWith(color: Colors.grey, fontSize: 10)),
-                const SizedBox(height: 8),
+                Text(
+                  nail.name,
+                  style: AppTypography.textXS.copyWith(fontWeight: FontWeight.w800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis, //
+                ),
+                const SizedBox(height: 4),
+                // Tên tiệm giả định hoặc lấy từ store.name
+                Text(
+                  widget.store?.name ?? "Pionails Studio",
+                  style: AppTypography.textXS.copyWith(color: Colors.grey, fontSize: 10),
+                ),
+                const SizedBox(height: 10),
                 Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("\$${nail.price}", style: AppTypography.textSM.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                      Row(children: [const Icon(Icons.favorite, color: Colors.grey, size: 12), const SizedBox(width: 4), Text("${nail.likes}", style: AppTypography.textXS.copyWith(color: Colors.grey))])
+                      Text(
+                        "\$${nail.price}",
+                        style: AppTypography.textSM.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          const Icon(Icons.favorite, color: AppColors.primary, size: 12),
+                          const SizedBox(width: 4),
+                          Text(
+                            "${nail.likes}",
+                            style: AppTypography.textXS.copyWith(color: Colors.grey),
+                          ),
+                        ],
+                      )
                     ]
                 ),
               ],
@@ -328,7 +395,6 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
       ),
     );
   }
-
   /// -------------------------------------------------------------------------
   /// HÀM TRỢ GIÚP: XỬ LÝ ẢNH THÔNG MINH VÀ NÚT BẤM TRÒN
   /// -------------------------------------------------------------------------

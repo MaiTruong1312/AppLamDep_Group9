@@ -257,7 +257,7 @@ class _StoreDetailsState extends State<StoreDetails> {
 
                           // 3. DANH SÁCH DỊCH VỤ DƯỚI DẠNG GRID
                           _buildSectionTitle("Service Of ${store.name}"),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 0),
                           _buildServiceGrid(store.services),
                           const SizedBox(height: 24),
 

@@ -99,99 +99,152 @@ class _StoreListState extends State<StoreList> {
   /// Sử dụng cấu trúc Row để hiển thị ảnh bên trái và thông tin bên phải.
   Widget _buildStoreCard(BuildContext context, Store store) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 20, left: 2, right: 2),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24), // Bo góc sâu tạo cảm giác hiện đại
         boxShadow: [
+          // HIỆU ỨNG ĐỔ BÓNG HỒNG NHẸ PRIMARY400
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
+            color: AppColors.primary.withOpacity(0.12), // Hồng nhạt thanh lịch
+            blurRadius: 20,
+            spreadRadius: 2,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         onTap: () {
-          // ĐIỀU HƯỚNG SANG TRANG CHI TIẾT KHI NHẤN VÀO THẺ
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => StoreDetails(storeId: store.id)),
           );
         },
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              // PHẦN 1: HÌNH ẢNH VÀ TRẠNG THÁI HOẠT ĐỘNG
+              // PHẦN 1: HÌNH ẢNH VÀ TRẠNG THÁI (GỌN GÀNG HƠN)
               Stack(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(15),
-                    child: SizedBox(
-                      width: 90,
-                      height: 90,
-                      child: _buildSmartImage(store.imgUrl),
+                  Hero(
+                    tag: 'store_${store.id}',
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: SizedBox(
+                        width: 100,
+                        height: 100,
+                        child: _buildSmartImage(store.imgUrl),
+                      ),
                     ),
                   ),
-                  // BADGE OPEN/CLOSED: TỰ ĐỘNG CẬP NHẬT THEO GIỜ HÀNH CHÍNH
+                  // NHÃN TRẠNG THÁI (Thiết kế lại nhỏ gọn)
                   Positioned(
-                    top: 5,
-                    left: 5,
+                    top: 6,
+                    left: 6,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: (store.isOpen) ? AppColors.success500 : AppColors.error500,
-                        borderRadius: BorderRadius.circular(5),
+                        color: (store.isOpen)
+                            ? AppColors.success500.withOpacity(0.9)
+                            : AppColors.error500.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         (store.isOpen) ? 'OPEN' : 'CLOSED',
-                        style: const TextStyle(color: AppColors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 18),
 
-              // PHẦN 2: THÔNG TIN Tên, Địa chỉ, Đánh giá, Khoảng cách
+              // PHẦN 2: NỘI DUNG (CĂN CHỈNH CHIỀU SÂU)
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      store.name,
-                      style: AppTypography.textMD.copyWith(fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    // Tên tiệm và khoảng cách trên cùng một dòng
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            store.name,
+                            style: AppTypography.textMD.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF2D2E32),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      store.address,
-                      style: AppTypography.textXS.copyWith(color: Colors.grey[600]),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
+                    // Địa chỉ với Icon định vị mờ
                     Row(
                       children: [
-                        const Icon(Icons.star, color: AppColors.warning500, size: 16),
+                        const Icon(Icons.location_on_rounded, size: 12, color: Colors.grey),
                         const SizedBox(width: 4),
-                        Text(
-                          store.rating.toString(),
-                          style: AppTypography.textXS.copyWith(fontWeight: FontWeight.bold),
+                        Expanded(
+                          child: Text(
+                            store.address,
+                            style: AppTypography.textXS.copyWith(
+                              color: Colors.grey[500],
+                              height: 1.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // HÀNG CUỐI: ĐÁNH GIÁ VÀ KHOẢNG CÁCH (CÂN XỨNG)
+                    Row(
+                      children: [
+                        // Rating Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning500.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.star_rounded, color: AppColors.warning500, size: 14),
+                              const SizedBox(width: 2),
+                              Text(
+                                store.rating.toString(),
+                                style: AppTypography.textXS.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.warning500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          "(${store.reviewsCount} reviews)",
-                          style: AppTypography.textXS.copyWith(color: Colors.grey),
+                          "${store.reviewsCount} reviews",
+                          style: AppTypography.textXS.copyWith(color: Colors.grey[400]),
                         ),
                         const Spacer(),
-                        // HIỂN THỊ KHOẢNG CÁCH KM DỰA TRÊN TỌA ĐỘ THỰC
+                        // Khoảng cách nổi bật bằng màu Primary
                         Text(
                           "${store.distance.toStringAsFixed(1)} km",
-                          style: AppTypography.textXS.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                          style: AppTypography.textSM.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ],
                     ),

@@ -70,19 +70,21 @@ class MostServiceTab extends StatelessWidget {
         // PHẦN 1: THANH TÌM KIẾM (Search Bar)
         // Được bọc trong Padding để tạo khoảng cách với các cạnh màn hình
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           child: Container(
+            height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFFF3F4F6), // Màu xám nhạt giúp UI dịu mắt [cite: 40]
-              borderRadius: BorderRadius.circular(12), // Bo góc cho thanh tìm kiếm
+              color: const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.grey.shade100),
             ),
             child: TextField(
               decoration: InputDecoration(
-                hintText: "Search services, salons...",
-                hintStyle: AppTypography.textSM.copyWith(color: Colors.grey),
-                prefixIcon: const Icon(Icons.search, color: AppColors.primary), // Icon kính lúp màu hồng
-                border: InputBorder.none, // Loại bỏ viền mặc định của TextField
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                hintText: "Search services...",
+                hintStyle: AppTypography.textSM.copyWith(color: Colors.grey.shade400),
+                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
             ),
           ),
@@ -92,12 +94,11 @@ class MostServiceTab extends StatelessWidget {
         // Expanded giúp danh sách chiếm toàn bộ không gian còn lại và có thể cuộn được
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: store.services.length, // Số lượng phần tử dựa trên dữ liệu từ Firestore [cite: 74]
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: store.services.length,
             itemBuilder: (context, index) {
               final service = store.services[index];
-              // Gọi hàm xây dựng từng thẻ dịch vụ riêng biệt để code sạch sẽ hơn
-              return _buildServiceCard(context, service);
+              return _buildCompactServiceCard(context, service);
             },
           ),
         ),
@@ -106,103 +107,107 @@ class MostServiceTab extends StatelessWidget {
   }
 
   /// Hàm xây dựng giao diện cho từng thẻ dịch vụ (Service Card)
-  Widget _buildServiceCard(BuildContext context, Service service) {
-    return InkWell(
-      // InkWell tạo hiệu ứng phản hồi khi chạm (Ripple effect)
-      onTap: () => _navigateToDetail(context, service),
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 20), // Khoảng cách giữa các thẻ
-        decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              // Đổ bóng nhẹ (Elevation) giúp thẻ nổi bật trên nền ứng dụng
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8) // Bóng đổ xuống dưới
-              )
-            ]
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // A. HÌNH ẢNH DỊCH VỤ
-            // ClipRRect giúp bo góc ảnh chỉ ở phía trên để khớp với Container cha
-            ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+  Widget _buildCompactServiceCard(BuildContext context, Service service) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        // VIỀN HỒNG SIÊU MẢNH GIÚP THẺ NỔI BẬT KHÔNG CẦN ĐỔ BÓNG DÀY
+        border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: InkWell(
+        onTap: () => _navigateToDetail(context, service),
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              // 1. ẢNH DỊCH VỤ (Kích thước nhỏ gọn 85x85)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
                 child: SizedBox(
-                  height: 180,
-                  width: double.infinity,
+                  width: 85,
+                  height: 85,
                   child: _buildSmartImage(service.imageUrl ?? ''),
-                )
-            ),
-
-            // B. NỘI DUNG VĂN BẢN (Tên, Mô tả, Thời gian)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Tên dịch vụ (In đậm)
-                  Text(
-                      service.name,
-                      style: AppTypography.textMD.copyWith(fontWeight: FontWeight.bold)
-                  ),
-                  const SizedBox(height: 4),
-                  // Mô tả dịch vụ: Xử lý logic nếu Firebase trống thì hiện text mặc định
-                  Text(
-                    service.description.isNotEmpty ? service.description : "Premium beauty service with quality care.",
-                    style: AppTypography.textSM.copyWith(color: Colors.grey),
-                    maxLines: 2, // Giới hạn tối đa 2 dòng để đảm bảo bố cục không bị lệch
-                    overflow: TextOverflow.ellipsis, // Hiện dấu "..." nếu text quá dài
-                  ),
-                  const SizedBox(height: 16),
-
-                  // C. DÒNG THÔNG TIN PHỤ VÀ NÚT BẤM
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Hiển thị thời gian thực hiện (Duration) [cite: 75]
-                      Row(
-                        children: [
-                          const Icon(Icons.access_time, color: Colors.grey, size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                              "Time: ${service.duration} mins",
-                              style: AppTypography.textSM.copyWith(color: Colors.grey, fontWeight: FontWeight.w500)
-                          ),
-                        ],
-                      ),
-
-                      // NÚT BOOK (Xác nhận đặt lịch)
-                      ElevatedButton(
-                        // Khi nhấn nút Book, ngoài việc chuyển trang còn hiện SnackBar nhắc nhở
-                        onPressed: () => _navigateToDetail(context, service, showMessage: true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary, // Màu hồng đặc trưng của Pionails [cite: 40]
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        ),
-                        child: Text(
-                            "Book",
-                            style: AppTypography.textSM.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white
-                            )
-                        ),
-                      )
-                    ],
-                  ),
-                ],
+                ),
               ),
-            )
-          ],
+              const SizedBox(width: 16),
+
+              // 2. THÔNG TIN (Sử dụng Expanded để tự động co giãn)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            service.name,
+                            style: AppTypography.textSM.copyWith(fontWeight: FontWeight.w900),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        // GIÁ TIỀN (Nằm cùng dòng với tên giúp gọn hơn)
+                        Text(
+                          "\$${service.price}",
+                          style: AppTypography.textSM.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      service.description,
+                      style: AppTypography.textXS.copyWith(color: Colors.grey[500], height: 1.3),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time_rounded, size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text(
+                          "${service.duration} mins",
+                          style: AppTypography.textXS.copyWith(color: Colors.grey[600]),
+                        ),
+                        const Spacer(),
+                        // NÚT BOOK (Thiết kế lại tối giản)
+                        SizedBox(
+                          height: 32,
+                          child: ElevatedButton(
+                            onPressed: () => _navigateToDetail(context, service, showMessage: true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                            ),
+                            child: const Text(
+                              "Book",
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
