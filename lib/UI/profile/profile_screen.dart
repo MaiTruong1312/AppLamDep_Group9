@@ -13,7 +13,7 @@ import 'package:applamdep/UI/profile/coupons_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:qr_flutter/qr_flutter.dart';
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
@@ -130,7 +130,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       actions: [
         IconButton(
           icon: const Icon(Icons.qr_code_scanner, color: Color(0xFFF25278)),
-          onPressed: () {},
+          onPressed: () {
+            final user = _auth.currentUser;
+            if (user != null) {
+              _showMyQRCodeDialog(context, user.uid); // Đổi sang hàm Dialog
+            }
+          },
         ),
         IconButton(
           icon: const Icon(
@@ -142,7 +147,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ],
     );
   }
-
+  void _showMyQRCodeDialog(BuildContext context, String uid) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // Giúp khung tự co giãn theo nội dung
+            children: [
+              const Text(
+                'My Member QR',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF313235),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Show this code to the staff at the store',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Color(0xFF7B7D87), fontSize: 14),
+              ),
+              const SizedBox(height: 32),
+              // Mã QR cá nhân trung tâm
+              QrImageView(
+                data: uid,
+                version: QrVersions.auto,
+                size: 220.0,
+                foregroundColor: const Color(0xFF313235),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                _userName, // Hiển thị tên người dùng thực tế từ Firebase
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF313235),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Close',
+                  style: TextStyle(color: Color(0xFFF25278), fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
   // 2. Header (Avatar & Name) - Now dynamic
   Widget _buildHeader() {
     return Row(

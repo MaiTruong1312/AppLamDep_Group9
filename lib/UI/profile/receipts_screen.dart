@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-// Hãy đảm bảo bạn đã tạo file này theo hướng dẫn bên dưới
 import 'package:applamdep/UI/profile/receipt_detail_screen.dart';
 
 class ReceiptsScreen extends StatelessWidget {
@@ -10,7 +9,6 @@ class ReceiptsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Lấy UID của người dùng hiện tại để lọc dữ liệu an toàn
     final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     return Scaffold(
@@ -31,10 +29,12 @@ class ReceiptsScreen extends StatelessWidget {
       body: currentUserId.isEmpty
           ? const Center(child: Text('Vui lòng đăng nhập để xem biên lai.'))
           : StreamBuilder<QuerySnapshot>(
-        // 2. Chỉ truy vấn những booking có user_id khớp với người đang dùng app
+        // SỬA 1: Đổi collection sang 'appointments' và tên trường là 'userId'
+        // SỬA 2: Thêm lọc paymentStatus == 'paid' để chỉ hiện biên lai đã thanh toán
         stream: FirebaseFirestore.instance
-            .collection('bookings')
-            .where('user_id', isEqualTo: currentUserId)
+            .collection('appointments')
+            .where('userId', isEqualTo: currentUserId)
+            .where('paymentStatus', isEqualTo: 'paid')
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) return const Center(child: Text('Đã có lỗi xảy ra.'));
@@ -43,7 +43,7 @@ class ReceiptsScreen extends StatelessWidget {
           }
 
           final docs = snapshot.data!.docs;
-          if (docs.isEmpty) return const Center(child: Text('Bạn chưa có biên lai nào.'));
+          if (docs.isEmpty) return const Center(child: Text('Bạn chưa có biên lai đã thanh toán nào.'));
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -51,21 +51,16 @@ class ReceiptsScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final data = docs[index].data() as Map<String, dynamic>;
 
-              // Tính tổng tiền từ danh sách dịch vụ (trường 'services' trong Firebase)
-              final services = data['services'] as List<dynamic>? ?? [];
-              double total = 0;
-              for (var s in services) {
-                total += (s['price'] ?? 0).toDouble();
-              }
+              // SỬA 3: Lấy giá trị thanh toán trực tiếp từ paymentAmount hoặc finalPrice
+              final double totalAmount = (data['paymentAmount'] ?? data['finalPrice'] ?? 0).toDouble();
 
-              final Timestamp? timestamp = data['bookingDate'];
+              final Timestamp? timestamp = data['paymentDate'] ?? data['bookingDate'];
               final String dateStr = timestamp != null
                   ? DateFormat('dd/MM/yyyy').format(timestamp.toDate())
                   : 'N/A';
 
               return GestureDetector(
                 onTap: () {
-                  // 3. Chuyển sang màn hình chi tiết và truyền dữ liệu
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -99,7 +94,7 @@ class ReceiptsScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              data['nailDesignName'] ?? 'Dịch vụ làm đẹp',
+                              'Order #${docs[index].id.substring(0, 8).toUpperCase()}',
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                             ),
                             Text(dateStr, style: const TextStyle(color: Colors.grey, fontSize: 13)),
@@ -107,8 +102,8 @@ class ReceiptsScreen extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(total),
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF313235), fontSize: 15),
+                        '${totalAmount.toStringAsFixed(2)} \$',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFF25278), fontSize: 15),
                       ),
                     ],
                   ),

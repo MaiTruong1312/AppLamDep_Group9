@@ -56,6 +56,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         url,
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'email': email}),
+
       );
 
       if (!mounted) return;
